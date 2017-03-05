@@ -12,7 +12,8 @@ static const size_t VGA_HEIGHT = 25;
 static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
 
 bool terminal_reverse = false;
- 
+bool terminal_changecolor = true;
+
 static size_t terminal_row;
 static size_t terminal_column;
 static uint8_t terminal_color;
@@ -42,10 +43,19 @@ void terminal_initialize(void) {
 void terminal_setcolor(uint8_t color) {
 	terminal_color = color;
 }
+
+void terminal_setcursor(size_t x, size_t y){
+	terminal_row = y;
+	terminal_column = x;
+}
  
 void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 	const size_t index = (terminal_reverse ?  VGA_HEIGHT - y : y) * VGA_WIDTH + x;
-	terminal_buffer[index] = vga_entry(c, color);
+	if(terminal_changecolor){
+		terminal_buffer[index] = vga_entry(c, color);
+	}else{
+		terminal_buffer[index] = (terminal_buffer[index] & 0xff00) | c;
+	}
 }
  
 void terminal_scroll(size_t count) {
