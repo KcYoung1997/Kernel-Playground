@@ -21,7 +21,7 @@ struct time get_rtc_unsafe(){
 	ret.minute = get_rtc_register(RTC_REG_MINUTE);
 	ret.hour = get_rtc_register(RTC_REG_HOUR);
 	ret.day = get_rtc_register(RTC_REG_DAY);
-	//ret.month = get_rtc_register(RTC_REG_MONTH);
+	ret.month = get_rtc_register(RTC_REG_MONTH);
 	ret.year = get_rtc_register(RTC_REG_YEAR);
 	return ret;
 }

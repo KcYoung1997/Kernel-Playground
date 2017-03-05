@@ -70,13 +70,6 @@ void terminal_scroll(size_t count) {
 	--terminal_row;
 }
 
-void terminal_printhex(uint8_t byte){
-	terminal_putchar('0');
-	terminal_putchar('x');
-	terminal_putchar(byte>=160? 'A'+(byte/16)-10 : '0'+(byte/16));
-	byte %= 16;
-	terminal_putchar(byte>=10? 'A'+byte-10 : '0'+byte);
-}
 
 void terminal_putchar(char c) {
 	if(c == '\n' || c == '\r'){
@@ -110,4 +103,35 @@ void terminal_write(const char* data, size_t size) {
  
 void terminal_writestring(const char* data) {
 	terminal_write(data, strlen(data));
+}
+
+
+void terminal_printhex(uint8_t byte){
+	terminal_putchar('0');
+	terminal_putchar('x');
+	terminal_putchar(byte>=160? 'A'+(byte/16)-10 : '0'+(byte/16));
+	byte %= 16;
+	terminal_putchar(byte>=10? 'A'+byte-10 : '0'+byte);
+}
+
+void terminal_writeordinal(uint32_t num) {
+	switch(num % 100)
+	{
+	case 11:
+	case 12:
+	case 13:
+	    terminal_writestring("th");
+	}
+
+	switch(num % 10)
+	{
+	case 1:
+	    terminal_writestring("st");
+	case 2:
+	    terminal_writestring("nd");
+	case 3:
+	    terminal_writestring("rd");
+	default:
+	    terminal_writestring("th");
+	}
 }
