@@ -9,7 +9,11 @@
 #define RTC_REG_YEAR 	0x09
 
 //Information: http://wiki.osdev.org/CMOS
+
 bool cmos_initialized = false;
+bool BCDmode;
+bool AMPMmode;
+struct time last_time;
 
 struct time get_rtc_unsafe(){
 	struct time ret;
@@ -59,9 +63,20 @@ void update_rtc(){
 	get_rtc();
 }
 
+void waitSecond(uint32_t seconds){
+	uint8_t start = get_rtc_register(RTC_REG_SECOND);
+	while(seconds){
+		asm volatile("hlt");
+		uint8_t current = get_rtc_register(RTC_REG_SECOND);
+		if(current != start){
+			--seconds;
+			start = current;
+		}
+	}
+}
+
 void cmos_initialize(){
 	uint8_t flagsB = get_rtc_register(RTC_REG_STATUS_B);
 	AMPMmode = !(flagsB & 0x2);
 	BCDmode = !(flagsB & 0x4);
-
 }

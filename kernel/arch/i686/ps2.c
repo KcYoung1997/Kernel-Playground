@@ -1,117 +1,216 @@
 #include <kernel/portb.h>
 #include <kernel/ps2.h>
+#include <kernel/tty.h>
 
-#include <stdbool.h>
+#include <stdint.h>
 
-bool initialised;
-bool port1Enabled;
-bool port2Enabled;
 
-inline bool outfull(){
-	return inportb(KBD_REGISTERPORT) & (1<<1);
+#define PS2_DATAPORT 0x60
+#define PS2_REGISTERPORT 0x64
+
+#define DISABLEPORT1 0xAD
+#define DISABLEPORT2 0xA7
+
+#define ENABLEPORT1 0xAE
+#define ENABLEPORT2 0xA8
+
+#define TESTPORT1 0xAB
+#define TESTPORT2 0xA9
+#define PORTTESTPASS 0x00
+
+#define READCONFIG 0x20
+#define WRITECONFIG 0x60
+
+#define SELFTEST 0xAA
+#define SELFTESTPASS 0x55
+#define SELFTESTFAIL 0xFC
+
+#define ENABLESCANNING 0xF4
+#define DISABLESCANNING 0xF5
+#define PS2_IDENTIFY 0xF2
+
+#define PORT_DISABLED		0
+#define PORT_UNKNOWN		1
+#define PORT_MOUSE 		2
+#define PORT_MOUSE_SCROLL 	3
+#define PORT_MOUSE_5		4
+#define PORT_KEYBOARD		5
+
+bool initialized;
+int port1Mode = 0;
+int port2Mode = 0;
+
+inline bool canRead(){
+	return (inportb(PS2_REGISTERPORT) & 1);
 }
-
-inline bool infull(){
-	return inportb(KBD_REGISTERPORT) & 1;
+inline bool canWrite(){
+	return !(inportb(PS2_REGISTERPORT) & (1<<1));
 }
-
-inline void cleanin(){
-	if(infull()){
-		terminal_writestring("PS2: Clearing garbage: \n"); 
-		do { terminal_putchar(inportb(0x60)); } while(infull());
+inline void cleanInput(){
+	if(canRead()){
+		terminal_writestring("PS2: Clearing garbage: "); 
+		do { terminal_printhex(inportb(0x60)); } while(canRead());
 		terminal_putchar('\n');
 	}
 }
+
 void ps2_initialize(){
 	// Information: http://wiki.osdev.org/"8042"_PS/2_Controller
+	//		http://wiki.osdev.org/PS/2_Keyboard
 	// TODO: Check if PS/2 ports exist
 	// TODO: Timeouts on all outfull waits
-	// Temporarily disable both PS/2 ports - waiting until ready to accept input
-	while(outfull()) continue;
-	outportb(KBD_REGISTERPORT, DISABLEPORT1);
-	outportb(KBD_REGISTERPORT, DISABLEPORT2);
-	terminal_writestring("PS2: Disabled PS/2 ports for diagnostics\n");
-	//Flush output buffer by checking if there is any input then taking it without storing
-	cleanin();
-	// Request then read Controller configuration byte
-	{
-		while(outfull()) continue;
-		outportb(KBD_REGISTERPORT, READCONFIG);
-		uint8_t config = inportb(KDB_DATAPORT);
-		terminal_writestring("PS2: Current config: ");
-		for(size_t i = 0; i < 8; ++i) terminal_putchar('0');
-		terminal_putchar('\n');
-		// Get if two PS/2 devices exist (bit 5)
-		port2Enabled = config & (1<<5);
-		if(port2Enabled) terminal_writestring("PS2: Port2 enabled in config\n");
-		else terminal_writestring("PS2: Port2 disabled in config\n");
-		// Set interrupts off for both devices
-		config &= ~(1 << 0);
-		config &= ~(1 << 1);
-		// Set translation off
-		config &= ~(1 << 6);
-		terminal_writestring("PS2: New config: ");
-		for(size_t i = 0; i < 8; ++i) terminal_putchar('0');
-		terminal_putchar('\n');
-		// Write back the modified configuration byte
-		while(outfull()) continue;
-		outportb(KBD_REGISTERPORT, WRITECONFIG);
-		outportb(KDB_DATAPORT, config);
+
+	terminal_writestring("PS2: Disabling PS/2 ports for diagnostics\n");
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, DISABLEPORT1);
+	outportb(PS2_REGISTERPORT, DISABLEPORT2);
+
+	cleanInput();
+	terminal_writestring("PS2: Read config: ");
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, READCONFIG);
+	while(!canRead()) continue;
+	uint8_t config = inportb(PS2_DATAPORT);
+	terminal_writestring("PS2: Current config: ");
+	for(uint8_t i = 0; i < 8; ++i) terminal_putchar('0');
+	terminal_putchar('\n');
+
+	port2Mode = config & (1<<5);
+	if(port2Mode) terminal_writestring("PS2: Port2 enabled in config\n");
+	else terminal_writestring("PS2: Port2 disabled in config\n");
+
+	// Set interrupts off for both devices
+	config &= ~(1 << 0);
+	config &= ~(1 << 1);
+	// Set translation off
+	config &= ~(1 << 6);
+	terminal_writestring("PS2: New config: ");
+	for(uint8_t i = 0; i < 8; ++i) terminal_putchar('0');
+	terminal_putchar('\n');
+
+	terminal_writestring("PS2: Write config\n");
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, WRITECONFIG);
+	outportb(PS2_DATAPORT, config);
+
+	terminal_writestring("PS2: Performing self-test \n");
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, SELFTEST);
+		while(!canRead()) continue;
+	uint8_t test = inportb(PS2_DATAPORT);
+	if(test == SELFTESTFAIL){
+		//TODO: PS/2 has failed self-test
+		terminal_writestring("PS2: Self-test failed\n");
+		initialized = true;
+		port1Mode = false;
+		port2Mode = false;
+		return;
+	}else if(test != SELFTESTPASS){
+		terminal_writestring("PS2: Self-test returned undefined response\n");
+		//TODO: Unknown error has happened - Maybe buffers should be cleared before this
+		initialized = true;
+		port1Mode = false;
+		port2Mode = false;
+		return;
 	}
-	// Perform controller self-test
-	while(outfull()) continue;
-	outportb(KBD_REGISTERPORT, SELFTEST);
+	terminal_writestring("PS2: Self-test passed\n");
+
+	if(port2Mode)
 	{
-		while(!infull()) continue;
-		uint8_t test = inportb(KDB_DATAPORT);
-		if(test == SELFTESTFAIL){
-			//TODO: PS/2 has failed self-test
-			terminal_writestring("PS2: Self-test failed\n");
-			initialised = true;
-			port1Enabled = false;
-			port2Enabled = false;
-			return;
-		}else if(test != SELFTESTPASS){
-			terminal_writestring("PS2: Self-test returned undefined response\n");
-			//TODO: Unknown error has happened - Maybe buffers should be cleared before this
-			initialised = true;
-			port1Enabled = false;
-			port2Enabled = false;
-			return;
-		}
-		terminal_writestring("PS2: Self-test passed\n");
-	}
-	// Test for dual channel properly
-	if(port2Enabled)
-	{
-		outportb(KBD_REGISTERPORT, ENABLEPORT2);
-		port2Enabled = !(inportb(KDB_DATAPORT) & (1<<5));
-		if(port2Enabled){
+		while(!canWrite()) continue;
+		outportb(PS2_REGISTERPORT, ENABLEPORT2);
+		while(!canWrite()) continue;
+		outportb(PS2_REGISTERPORT, READCONFIG);
+		while(!canRead()) continue;
+		port2Mode = !(inportb(PS2_DATAPORT) & (1<<5));
+		if(port2Mode){
 			terminal_writestring("PS2: Port2 enabled definitely\n");
-			outportb(KBD_REGISTERPORT, DISABLEPORT2);
+			while(!canWrite()) continue;
+			outportb(PS2_REGISTERPORT, DISABLEPORT2);
 		}
 	}
+
+	
 	// Test if ports work
 	// TODO: get specifics about port failures
-	outportb(KBD_REGISTERPORT, TESTPORT1);
-	if(inportb(KDB_DATAPORT) == PORTTESTPASS) port1Enabled = true;
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, TESTPORT1);
+	while(!canRead()) continue;
+	if(inportb(PS2_DATAPORT) == PORTTESTPASS) port1Mode = PORT_UNKNOWN;
 	else terminal_writestring("PS2: Port1 failed test\n");
-	if(port2Enabled){
-		outportb(KBD_REGISTERPORT, TESTPORT1);
-		if(inportb(KDB_DATAPORT) != PORTTESTPASS){
-			 port2Enabled = false;
+	if(port2Mode){
+		while(!canWrite()) continue;
+		outportb(PS2_REGISTERPORT, TESTPORT1);
+		while(!canRead()) continue;
+		if(inportb(PS2_DATAPORT) != PORTTESTPASS){
+			 port2Mode = PORT_DISABLED;
 			terminal_writestring("PS2: Port2 failed test\n");
 		}
 	}
-	if(!port1Enabled && !port2Enabled){
+	if(!port1Mode && !port2Mode){
 		//TODO: Both ports don't work, throw and return
-		initialised = true;
+		initialized = true;
 		return;
 	}
-	// Re-enable both PS/2 ports
-	outportb(KBD_REGISTERPORT, ENABLEPORT1);
-	outportb(KBD_REGISTERPORT, ENABLEPORT2);
-	terminal_writestring("PS2: Finished initialization\n");
-	// TODO: re-enable interrupts once implemented
-	// TODO: Device resets when accessed
+
+	terminal_writestring("PS2: Finished port initialization, re-enabling ports\n");
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, ENABLEPORT1);
+	while(!canWrite()) continue;
+	outportb(PS2_REGISTERPORT, ENABLEPORT2);
+
+	terminal_writestring("PS2: Disabling scanning on port 1\n");
+	bool success = false;
+	do{
+		while(!canWrite()) continue;
+		cleanInput();
+		outportb(PS2_DATAPORT, DISABLESCANNING);
+		while(!canRead()) continue;
+		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+	}while(!success);
+	cleanInput();
+
+	terminal_writestring("PS2: Asking port 1 for device identification\n");
+	success = false;
+	do{
+		while(!canWrite()) continue;
+		outportb(PS2_DATAPORT,PS2_IDENTIFY);
+		while(!canRead()) continue;
+		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+	}while(!success);
+
+
+	while(!canRead()) continue;
+	uint8_t identity = inportb(PS2_DATAPORT);
+	if(identity == 0xAB){
+		//TODO:Keyboard
+		cleanInput();
+		terminal_writestring("PS2: Port 1 is a keyboard\n");
+		port1Mode = PORT_KEYBOARD;
+	}else if(identity == 0x00){
+		port1Mode = PORT_MOUSE;
+		terminal_writestring("PS2: Port 1 is a mouse\n");
+	}else if(identity == 0x03){
+		port1Mode = PORT_MOUSE;
+		terminal_writestring("PS2: Port 1 is a mouse with scrollwhell\n");
+	}else if(identity == 0x04){
+		port1Mode = PORT_MOUSE;
+		terminal_writestring("PS2: Port 1 is a 5 button mouse\n");
+	}else{
+		port1Mode = PORT_UNKNOWN;
+		terminal_writestring("PS2: Port 1 is unknown device code: ");
+		terminal_printhex(identity);
+		while(canRead())	terminal_printhex(inportb(PS2_DATAPORT));
+		terminal_putchar('\n');
+	}
+	
+	terminal_writestring("PS2: Re-enabling scanning on port 1\n");
+	do{
+		while(!canWrite()) continue;
+		outportb(PS2_DATAPORT, ENABLESCANNING);
+		while(!canRead()) continue;
+		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+	}while(!success);
 }
+
+

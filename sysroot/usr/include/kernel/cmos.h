@@ -1,7 +1,6 @@
 #ifndef _KERNEL_CMOS_H
 #define _KERNEL_CMOS_H
 
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -23,10 +22,10 @@ struct time{
 	uint8_t century;
 };
 
-bool cmos_initialized;
-bool BCDmode;
-bool AMPMmode;
-struct time last_time;
+extern bool cmos_initialized;
+extern bool BCDmode;
+extern bool AMPMmode;
+extern struct time last_time;
 
 inline uint8_t get_rtc_register(uint8_t reg){
       outportb(CMOS_ADDRESS_REG, reg);
@@ -39,5 +38,6 @@ inline bool rtc_isupdating(){
 struct time get_rtc();
 void update_rtc();
 void cmos_initialize();
+void waitSecond(uint32_t seconds);
 
 #endif

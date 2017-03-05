@@ -69,7 +69,15 @@ void terminal_scroll(size_t count) {
 	}
 	--terminal_row;
 }
- 
+
+void terminal_printhex(uint8_t byte){
+	terminal_putchar('0');
+	terminal_putchar('x');
+	terminal_putchar(byte>=160? 'A'+(byte/16)-10 : '0'+(byte/16));
+	byte %= 16;
+	terminal_putchar(byte>=10? 'A'+byte-10 : '0'+byte);
+}
+
 void terminal_putchar(char c) {
 	if(c == '\n' || c == '\r'){
 		// Newline

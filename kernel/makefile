@@ -78,7 +78,7 @@ install: install-headers install-kernel
 .PHONY: install-headers
 install-headers:
 	mkdir -p $(SYSROOT)/$(INCLUDEDIR)
-	cp -R --preserve=timestamps include/. $(SYSROOT)/$(INCLUDEDIR)/.
+	cp -R --preserve=timestamps include/. $(SYSROOT)/$(INCLUDEDIR)/kernel
 
 # Move kernel file to $(SYSROOT)
 .PHONY: install-kernel 
