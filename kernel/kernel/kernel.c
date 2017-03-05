@@ -36,16 +36,16 @@ inline void print_hex(uint8_t in){
 }
 inline void printTime(){
 	struct time current = get_rtc();
-	terminal_setcursor(32,2);
-	char time[16] = { '0'+current.hour/10,
+	terminal_setcursor(30,2);
+	char time[18] = { '0'+current.hour/10,
 			'0'+current.hour%10,
-			':',
-			'0'+current.second/10,
-			'0'+current.second%10,
 			':',
 			'0'+current.minute/10,
 			'0'+current.minute%10,
-			'\t',
+			':',
+			'0'+current.second/10,
+			'0'+current.second%10,
+			' ',' ',' ',
 			'0'+current.day/10,
 			'0'+current.day%10,
 			'/',
@@ -54,7 +54,7 @@ inline void printTime(){
 			'0'+current.year/10,
 			'0'+current.year%10,
 	};
-	terminal_write(time, 16);
+	terminal_write(time, 18);
 }
 
 inline uint8_t PIT_getclock(){
@@ -63,13 +63,13 @@ inline uint8_t PIT_getclock(){
 void kernel_main(void) {
 	/* Initialize terminal interface */
 	terminal_initialize();
-	//keyboard_initialize();
+	cmos_initialize();
 	uint8_t* vga = (uint8_t*) 0xB8000;
-//	terminal_reverse = true;
 	srand(PIT_getclock() << 24 | PIT_getclock() << 16 | PIT_getclock() << 8 | PIT_getclock());
 	terminal_writestring("\n\n\n\n           kkkkkkkk                OOOOOOOOO        SSSSSSSSSSSSSSS\n           k::::::k              OO:::::::::OO    SS:::::::::::::::S\n           k::::::k            OO:::::::::::::OO S:::::SSSSSS::::::S\n           k::::::k           O:::::::OOO:::::::OS:::::S     SSSSSSS\n            k:::::k    kkkkkkkO::::::O   O::::::OS:::::S\n            k:::::k   k:::::k O:::::O     O:::::OS:::::S\n            k:::::k  k:::::k  O:::::O     O:::::O S::::SSSS\n            k:::::k k:::::k   O:::::O     O:::::O  SS::::::SSSSS\n            k::::::k:::::k    O:::::O     O:::::O    SSS::::::::SS\n            k:::::::::::k     O:::::O     O:::::O       SSSSSS::::S\n            k:::::::::::k     O:::::O     O:::::O            S:::::S\n            k::::::k:::::k    O::::::O   O::::::O            S:::::S\n           k::::::k k:::::k   O:::::::OOO:::::::OSSSSSSS     S:::::S\n           k::::::k  k:::::k   OO:::::::::::::OO S::::::SSSSSS:::::S\n           k::::::k   k:::::k    OO:::::::::OO   S:::::::::::::::SS\n           kkkkkkkk    kkkkkkk     OOOOOOOOO      SSSSSSSSSSSSSSS\n\n                       \xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB\n                       \xBA Press any key to continue... \xBA\n                       \xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC");
 	uint8_t last = 0;
 	while(true){
+		printTime();
 		uint8_t temp = rand();
 		while(temp==last) temp = rand();
 		for(size_t i = 0; i < 25; ++i)
@@ -95,7 +95,7 @@ void kernel_main(void) {
 		 	vga[i*2 +1] = temp;
 			for(size_t i = 0; i < 2000000; ++i)  rand();
 		}
-		last = temp;
 		printTime();
+		last = temp;
 	}
 }

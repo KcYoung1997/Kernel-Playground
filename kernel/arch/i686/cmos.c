@@ -1,4 +1,5 @@
 #include <kernel/cmos.h>
+#include <kernel/tty.h>
 
 #define RTC_REG_SECOND 	0x00
 #define RTC_REG_MINUTE 	0x02
@@ -16,7 +17,7 @@ struct time get_rtc_unsafe(){
 	ret.minute = get_rtc_register(RTC_REG_MINUTE);
 	ret.hour = get_rtc_register(RTC_REG_HOUR);
 	ret.day = get_rtc_register(RTC_REG_DAY);
-	ret.month = get_rtc_register(RTC_REG_MONTH);
+	//ret.month = get_rtc_register(RTC_REG_MONTH);
 	ret.year = get_rtc_register(RTC_REG_YEAR);
 	return ret;
 }
@@ -25,14 +26,17 @@ struct time get_rtc(){
 	struct time orig = get_rtc_unsafe();
 	struct time correct;
 	//Wait until we get the same value twice in a row while the CMOS is not updating
-	do{ orig = correct; correct = get_rtc_unsafe(); }while(
+	do{ 
+		orig = correct;
+		correct = get_rtc_unsafe(); 
+	}while(
 			rtc_isupdating() ||
-			correct.second  == orig.second ||
-			correct.minute  == orig.minute ||
-			correct.hour    == orig.hour ||
-			correct.day     == orig.day ||
-			correct.month   == orig.month ||
-			correct.year    == orig.year
+			correct.second  != orig.second ||
+			correct.minute  != orig.minute ||
+			correct.hour    != orig.hour ||
+			correct.day     != orig.day ||
+			correct.month   != orig.month ||
+			correct.year    != orig.year
 		);
 	if(BCDmode){
 		correct.second = (correct.second & 0x0F) + ((correct.second / 16) * 10);
