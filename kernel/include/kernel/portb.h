@@ -1,3 +1,6 @@
+#ifndef _KERNEL_PORTB_H
+#define _KERNEL_PORTB_H
+
 #include <stdint.h>
 inline uint8_t inportb(uint32_t port)
 {
@@ -10,3 +13,5 @@ inline void outportb(unsigned int port,unsigned char value)
 {
    asm volatile ("outb %%al,%%dx": :"d" (port), "a" (value));
 }
+
+#endif
