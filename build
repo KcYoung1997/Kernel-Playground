@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+. ./config
+for PROJECT in $PROJECTS; do
+  (cd $PROJECT && DESTDIR="$SYSROOT" make install-headers)
+done
+for PROJECT in $PROJECTS; do
+  (cd $PROJECT && DESTDIR="$SYSROOT" make install)
+done

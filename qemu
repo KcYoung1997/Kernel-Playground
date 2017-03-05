@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+. ./build
+(cd kernel && DESTDIR="$SYSROOT" make run)

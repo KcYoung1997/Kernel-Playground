@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+. ./build
+export OUTISO="$(pwd)/$OSNAME.iso"
+(cd kernel && DESTDIR="$SYSROOT" make grub)

@@ -1,0 +1,31 @@
+#!/bin/sh
+PROJECTS="libc kernel"
+
+export OSNAME="kOS"
+
+export GCCDIR="$(pwd)/gcc"
+
+export HOST=i686-elf
+export ARCH=i686
+
+export AR=${GCCDIR}/bin/${HOST}-ar
+export AS=${GCCDIR}/bin/${HOST}-as
+export CC=${GCCDIR}/bin/${HOST}-gcc
+
+export CFLAGS='-O2 -g'
+export CPPFLAGS=''
+
+export PREFIX=usr
+export BOOTDIR=boot
+export LIBDIR=$PREFIX/lib
+export INCLUDEDIR=$PREFIX/include
+
+# Make GCC use system root
+export SYSROOT="$(pwd)/sysroot"
+export CC="$CC --sysroot=$SYSROOT"
+
+# Work around that the -elf gcc targets doesn't have a system include directory
+# because it was configured with --without-headers rather than --with-sysroot.
+if echo "$HOST" | grep -Eq -- '-elf($|-)'; then
+  export CC="$CC -isystem=/$INCLUDEDIR"
+fi
