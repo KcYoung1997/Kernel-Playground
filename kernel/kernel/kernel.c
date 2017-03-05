@@ -63,6 +63,7 @@ inline uint8_t PIT_getclock(){
 void kernel_main(void) {
 	/* Initialize terminal interface */
 	terminal_initialize();
+	keyboard_initialize();
 	cmos_initialize();
 	uint8_t* vga = (uint8_t*) 0xB8000;
 	srand(PIT_getclock() << 24 | PIT_getclock() << 16 | PIT_getclock() << 8 | PIT_getclock());
