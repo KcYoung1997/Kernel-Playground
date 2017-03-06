@@ -122,5 +122,5 @@ void kernel_main(void) {
 	cmos_initialize();
 	irq_inititalize();
 	splash();
-	for(;;) {terminal_printhex(tick);}
+	for(;;) {;}
 }

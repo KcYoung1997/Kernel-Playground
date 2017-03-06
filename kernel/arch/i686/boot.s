@@ -39,12 +39,23 @@ stack_top:
 
 
 # Setup IDT table
+
+
 .global lidt_core
 .type lidt_core, @function
 lidt_core:
 	movl 4(%esp), %eax
 	lidt (%eax)
 	ret
+.global irq_default
+.type irq_default, @function
+irq_default:
+	pushal
+	mov $0x20, %al
+	mov $0x20, %dx
+	out %al, %dx
+	popal
+	iret
 
 .global irq_test
 .type irq_test, @function
@@ -67,6 +78,18 @@ irq_kbd:
 	call _irq_kbd
 	popal
 	iret
+
+.global irq_cmos
+.type irq_cmos, @function
+irq_cmos:
+	pushal
+	mov $0x20, %al
+	mov $0x20, %dx
+	out %al, %dx
+	call _irq_cmos
+	popal
+	iret
+
 
 .global _start
 .type _start, @function
