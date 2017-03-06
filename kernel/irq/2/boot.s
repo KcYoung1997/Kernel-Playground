@@ -39,34 +39,28 @@ stack_top:
 
 
 # Setup IDT table
-.global lidt_core
-.type lidt_core, @function
-lidt_core:
-	movl 4(%esp), %eax
-	lidt (%eax)
+.global __idt_default_handler
+.type __idt_default_handler, @function
+__idt_default_handler:
+	pushal
+	mov $0x20, %al
+	mov $0x20, %dx
+	out %al, %dx
+	#call _test
+	popal
+	iretl
+
+.global _set_idtr
+.type _set_idtr, @function
+_set_idtr:
+	push %ebp
+	movl %esp, %ebp
+
+	lidt 0x10F0
+
+	movl %ebp, %esp
+	pop %ebp
 	ret
-
-.global irq_test
-.type irq_test, @function
-irq_test:
-	pushal
-	mov $0x20, %al
-	mov $0x20, %dx
-	out %al, %dx
-	call _test
-	popal
-	iret
-
-.global irq_kbd
-.type irq_kbd, @function
-irq_kbd:
-	pushal
-	mov $0x20, %al
-	mov $0x20, %dx
-	out %al, %dx
-	call _irq_kbd
-	popal
-	iret
 
 .global _start
 .type _start, @function

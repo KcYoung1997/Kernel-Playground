@@ -13,7 +13,7 @@ INCLUDEDIR?=$(PREFIX)/include
 LIBDIR?=$(PREFIX)/lib
 
 # Add mandatory options to CFLAGS, adds extra warnings:
-CFLAGS:=$(CFLAGS) -Wall -Wextra -ffreestanding
+CFLAGS:=$(CFLAGS) -Wall -Wextra -pedantic -Werror -ffreestanding
 CPPFLAGS:=$(CPPFLAGS) -D__is_kernel -Iinclude
 
 ARCHDIR = arch/$(ARCH)
@@ -31,7 +31,8 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 
 OBJS:= $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
- 
+irq/irq.o \
+
 CRTI_OBJ=$(ARCHDIR)/crti.o
 CRTN_OBJ=$(ARCHDIR)/crtn.o
  

@@ -6,6 +6,8 @@
 #include <kernel/ps2.h>
 #include <kernel/portb.h>
 #include <kernel/cmos.h>
+#include <kernel/irq.h>
+
 
 #include <string.h>
 
@@ -36,7 +38,7 @@ inline void print_hex(uint8_t in){
 }
 const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
-inline void printTime(){
+void printTime(){
 	struct time current = get_rtc();
 	terminal_setcursor(36,1);
 	char time[8] = { '0'+current.hour/10,
@@ -66,11 +68,15 @@ inline void printTime(){
 inline uint8_t PIT_getclock(){
 	return inportb(0x40);
 }
-void kernel_main(void) {
-	/* Initialize terminal interface */
-	terminal_initialize();
-	ps2_initialize();
-	cmos_initialize();
+void exitSplash(void) {
+	terminal_clear();
+	for(;;){
+		char c = keyboard_read();
+		if(c) terminal_putchar(c);
+	}
+
+}
+void splash(void) {
 	terminal_clear();
 	uint8_t* vga = (uint8_t*) 0xB8000;
 	srand(PIT_getclock() << 24 | PIT_getclock() << 16 | PIT_getclock() << 8 | PIT_getclock());
@@ -106,4 +112,15 @@ void kernel_main(void) {
 		printTime();
 		last = temp;
 	}
+}
+
+
+void kernel_main(void) {
+	/* Initialize terminal interface */
+	terminal_initialize();
+	ps2_initialize();
+	cmos_initialize();
+	irq_inititalize();
+	splash();
+	for(;;) {terminal_printhex(tick);}
 }

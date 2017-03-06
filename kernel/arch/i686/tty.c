@@ -14,10 +14,10 @@ static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
 bool terminal_reverse = false;
 bool terminal_changecolor = true;
 
-static size_t terminal_row;
-static size_t terminal_column;
-static uint8_t terminal_color;
-static uint16_t* terminal_buffer;
+size_t terminal_row;
+size_t terminal_column;
+uint8_t terminal_color;
+uint16_t* terminal_buffer;
 
 //TODO: This belongs in <string.h> when implemented
 size_t strlen(const char* str) {
