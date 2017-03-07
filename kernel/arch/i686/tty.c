@@ -106,23 +106,6 @@ void tty_writestring(const char* data) {
 	tty_write(data, strlen(data));
 }
 
-
-//TODO: use limits.h here instead of 2147483647
-static int digitsOf (int n) {
-    if (n < 0) n = (n == -2147483648) ? 2147483647 : -n;
-    if (n < 10) return 1;
-    if (n < 100) return 2;
-    if (n < 1000) return 3;
-    if (n < 10000) return 4;
-    if (n < 100000) return 5;
-    if (n < 1000000) return 6;
-    if (n < 10000000) return 7;
-    if (n < 100000000) return 8;
-    if (n < 1000000000) return 9;
-    /*      2147483647 is 2^31-1 - add more ifs as needed
-    and adjust this final return as well. */
-    return 10;
-}
 int tty_writef(const char* restrict format, ...) {
 	va_list parameters;
 	va_start(parameters, format);
@@ -166,6 +149,7 @@ int tty_writef(const char* restrict format, ...) {
 		else for(;*format >= '0' && *format <= '9';format++){
 			width = width*10 + *format-'0';
 		}
+		width = width==0 ? 1 : width;
 		//PRECISION
 		int precision = -1;
 		if(*format == '.') {
@@ -181,8 +165,7 @@ int tty_writef(const char* restrict format, ...) {
 			//Signed int
 			//Get next int
 			int num = va_arg(parameters, int);
-			//If its 0, just write it
-			if(num==0) { tty_writechar('0'); written++;continue;}
+			//If its 0, just write them
 			if(num<0) {
 				if(!(flag&PREPENDNONE)) {
 					tty_writechar('-');
@@ -192,28 +175,33 @@ int tty_writef(const char* restrict format, ...) {
 					tty_writechar('+');
 				}				
 			}
-			//Get digits count
-			int digits = digitsOf(num);
-			//write those digits
-			written+=digits;
-			for(digits--;digits > 0; digits--)tty_writechar('0' + (num/(digits^10)) % 10);
-			tty_writechar('0' + (num) % 10);
+			char digits[10];
+			//Setup width digits with '0'
+			for(int i = 0; i < width; i++, num /=10) 
+				digits[10-i] = '0' + num % 10;
+			//keep going until no more digits
+			for(;width<10 && num > 0; width--, num /=10) 
+				digits[10-width] = '0' + num % 10;
+			tty_write(((const char*)digits)+11-width,width);
+			written += width;
 		} else	if(*format == 'u' ) {
 			//TODO flags (DONE: prepend)
 			//Unsigned int - Dec
 			//Get next uint
 			unsigned int num = va_arg(parameters, unsigned int);
 			//If its 0, just write it
-			if(num==0) { tty_writechar('0'); written++;continue;}
 			if(flag&PREPENDPLUS) {
 				tty_writechar('+');
 			}
-			//Get digits count
-			int digits = digitsOf(num);
-			//write those digits
-			written+=digits;
-			for(digits--;digits > 0; digits--)tty_writechar('0' + (num/(digits^10)) % 10);
-			tty_writechar('0' + (num) % 10);
+			char digits[10];
+			//Setup width digits with '0'
+			for(int i = 0; i < width; i++, num /=10) 
+				digits[10-i] = '0' + num % 10;
+			//keep going until no more digits
+			for(;width<10 && num > 0; width--, num /=10) 
+				digits[10-width] = '0' + num % 10;
+			tty_write(((const char*)digits)+11-width,width);
+			written += width;
 		} else	if(*format == 'o') {
 			//Unsigned int = oct
 

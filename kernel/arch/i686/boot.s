@@ -86,6 +86,8 @@ irq_cmos:
 	mov $0x20, %al
 	mov $0x20, %dx
 	out %al, %dx
+	mov $0xA0, %dx
+	out %al, %dx
 	call _irq_cmos
 	popal
 	iret

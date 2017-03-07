@@ -79,4 +79,14 @@ void cmos_init(){
 	uint8_t flagsB = get_rtc_register(RTC_REG_STATUS_B);
 	AMPMmode = !(flagsB & 0x2);
 	BCDmode = !(flagsB & 0x4);
+	//Select register B
+	outportb(CMOS_ADDRESS_REG, RTC_REG_STATUS_B);
+	//Write back flags, with IRQ enabled
+	outportb(CMOS_DATA_REG, flagsB | 0x40);
+	//
+	uint8_t rate = 0x0F;			// rate must be above 2 and not over 15
+	outportb(0x70, 0x8A);		// set index to register A, disable NMI
+	char prev=inportb(0x71);	// get initial value of register A
+	outportb(0x70, 0x8A);		// reset index to A
+	outportb(0x71, (prev & 0xF0) | rate); //write only our rate to A. Note, rate is the bottom 4 bits.
 }

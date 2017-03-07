@@ -36,19 +36,6 @@ inline void print_hex(uint8_t in){
 	else
 		tty_writechar(char2 % 10 + '0');
 }
-const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
-void printTime(){
-	struct time current = get_rtc();
-	tty_cursorposition(36,1);
-	int d = current.day;
-	int y = (current.century*100)+current.year;
-	int m = current.month;	
-	int weekday  = (d += d< 3 ? y-- : y - 2, 23*m/9 + d + 4 + y/4- y/100 + y/400)%7;
-	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
-	tty_cursorposition(28,2);
-	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
-}
 
 inline uint8_t PIT_getclock(){
 	return inportb(0x40);
@@ -68,7 +55,6 @@ void splash(void) {
 	tty_writestring("\n\n\n\n           kkkkkkkk                OOOOOOOOO        SSSSSSSSSSSSSSS\n           k::::::k              OO:::::::::OO    SS:::::::::::::::S\n           k::::::k            OO:::::::::::::OO S:::::SSSSSS::::::S\n           k::::::k           O:::::::OOO:::::::OS:::::S     SSSSSSS\n            k:::::k    kkkkkkkO::::::O   O::::::OS:::::S\n            k:::::k   k:::::k O:::::O     O:::::OS:::::S\n            k:::::k  k:::::k  O:::::O     O:::::O S::::SSSS\n            k:::::k k:::::k   O:::::O     O:::::O  SS::::::SSSSS\n            k::::::k:::::k    O:::::O     O:::::O    SSS::::::::SS\n            k:::::::::::k     O:::::O     O:::::O       SSSSSS::::S\n            k:::::::::::k     O:::::O     O:::::O            S:::::S\n            k::::::k:::::k    O::::::O   O::::::O            S:::::S\n           k::::::k k:::::k   O:::::::OOO:::::::OSSSSSSS     S:::::S\n           k::::::k  k:::::k   OO:::::::::::::OO S::::::SSSSSS:::::S\n           k::::::k   k:::::k    OO:::::::::OO   S:::::::::::::::SS\n           kkkkkkkk    kkkkkkk     OOOOOOOOO      SSSSSSSSSSSSSSS\n\n                       \xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB\n                       \xBA Press any key to continue... \xBA\n                       \xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC");
 	uint8_t last = 0;
 	while(true){
-		printTime();
 		uint8_t temp = (((rand()%0x0E)+1)<< 4);
 		while(temp==last) temp = rand();
 		for(size_t i = 0; i < 24; ++i)
@@ -76,36 +62,33 @@ void splash(void) {
 		 	vga[i*160 +1] = temp;
 			for(size_t i = 0; i < 2000000; ++i)  rand();
 		}
-		printTime();
 		for(size_t i = 0; i < 79; ++i)
 		{
 		 	vga[i*2 +80*24*2 + 1] = temp;
 			for(size_t i = 0; i < 2000000; ++i)  rand();
 		}
-		printTime();
 		for(size_t i = 24; i >0; --i)  
 		{
 		 	vga[i*160 +159] = temp;
 			for(size_t i = 0; i < 2000000; ++i)  rand();
 		}
-		printTime();
 		for(size_t i = 80; i > 0; --i)
 		{
 		 	vga[i*2 +1] = temp;
 			for(size_t i = 0; i < 2000000; ++i)  rand();
 		}
-		printTime();
 		last = temp;
 	}
 }
 
 
 void kernel_main(void) {
-	/* Initialize tty interface */
 	tty_init();
 	ps2_init();
 	cmos_init();
 	irq_init();
+	// Enable interrupts
+	asm volatile("sti");
 	splash();
 	for(;;) {asm volatile("hlt");}
 }

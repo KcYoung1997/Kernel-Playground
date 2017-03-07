@@ -1,6 +1,7 @@
 #include <kernel/tty.h>
 #include <kernel/ps2.h>
 #include <kernel/portb.h>
+#include <kernel/cmos.h>
 
 #include <stdint.h>
 
@@ -25,9 +26,33 @@ void _irq_kbd(void) {
 	if(i==1000) tty_writestring("Spurios keyboard IRQ");
 }
 
+
+const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
+void printTime(){
+	struct time current = get_rtc();
+	tty_cursorposition(36,1);
+
+	int d = current.day;
+	int y = (current.century*100)+current.year;
+	int m = current.month;	
+	int weekday  = (d += d< 3 ? y-- : y - 2, 23*m/9 + d + 4 + y/4- y/100 + y/400)%7;
+	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
+	tty_cursorposition(28,2);
+	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
+}
 extern int irq_cmos(void);
 void _irq_cmos(void) {
-	tty_writestring("CMOS tick");
+	outportb(0x70, 0x0C);	// select register C
+	inportb(0x71);		// just throw away contents
+	printTime();
+	asm volatile("cli");
+	uint8_t rate = 0x0F;			// rate must be above 2 and not over 15
+	outportb(0x70, 0x8A);		// set index to register A, disable NMI
+	char prev=inportb(0x71);	// get initial value of register A
+	outportb(0x70, 0x8A);		// reset index to A
+	outportb(0x71, (prev & 0xF0) | rate); //write only our rate to A. Note, rate is the bottom 4 bits.
+	asm volatile("sti");
 }
 
 extern int irq_default(void);
@@ -117,7 +142,5 @@ void irq_init(void) {
 	outportb(PIC_MASTER_DATA, 0);
 	outportb(PIC_SLAVE_DATA, 0);
 	tty_writestring("PIC init_done\n");
-
-	asm volatile("sti");
 }
 
