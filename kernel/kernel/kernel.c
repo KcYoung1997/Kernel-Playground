@@ -28,59 +28,44 @@ inline void print_hex(uint8_t in){
 	uint8_t char1 = in >> 4;
 	uint8_t char2 = in % 16;
 	if(char1>9)
-		terminal_putchar(char1-10 + 'A');
+		tty_writechar(char1-10 + 'A');
 	else
-		terminal_putchar(char1 % 10 + '0');
+		tty_writechar(char1 % 10 + '0');
 	if(char2>9)
-		terminal_putchar(char2-10 + 'A');
+		tty_writechar(char2-10 + 'A');
 	else
-		terminal_putchar(char2 % 10 + '0');
+		tty_writechar(char2 % 10 + '0');
 }
 const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
 void printTime(){
 	struct time current = get_rtc();
-	terminal_setcursor(36,1);
-	char time[8] = { '0'+current.hour/10,
-			'0'+current.hour%10,
-			':',
-			'0'+current.minute/10,
-			'0'+current.minute%10,
-			':',
-			'0'+current.second/10,
-			'0'+current.second%10,
-	};
-	terminal_write(time,8);
-	terminal_setcursor(28,2);
+	tty_cursorposition(36,1);
 	int d = current.day;
 	int y = (current.century*100)+current.year;
 	int m = current.month;	
 	int weekday  = (d += d< 3 ? y-- : y - 2, 23*m/9 + d + 4 + y/4- y/100 + y/400)%7;
-	terminal_writestring(days[weekday]);
-	terminal_writestring(" the ");
-	if(current.day > 10) terminal_putchar('0' + current.day/10);
-	terminal_putchar('0' + current.day%10);
-	terminal_writeordinal(current.day);
-	terminal_writestring(" of ");
-	terminal_writestring(months[current.month-1]);
+	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
+	tty_cursorposition(28,2);
+	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
 }
 
 inline uint8_t PIT_getclock(){
 	return inportb(0x40);
 }
 void exitSplash(void) {
-	terminal_clear();
+	tty_clear();
 	for(;;){
 		char c = keyboard_read();
-		if(c) terminal_putchar(c);
+		if(c) tty_writechar(c);
 	}
 
 }
 void splash(void) {
-	terminal_clear();
+	tty_clear();
 	uint8_t* vga = (uint8_t*) 0xB8000;
 	srand(PIT_getclock() << 24 | PIT_getclock() << 16 | PIT_getclock() << 8 | PIT_getclock());
-	terminal_writestring("\n\n\n\n           kkkkkkkk                OOOOOOOOO        SSSSSSSSSSSSSSS\n           k::::::k              OO:::::::::OO    SS:::::::::::::::S\n           k::::::k            OO:::::::::::::OO S:::::SSSSSS::::::S\n           k::::::k           O:::::::OOO:::::::OS:::::S     SSSSSSS\n            k:::::k    kkkkkkkO::::::O   O::::::OS:::::S\n            k:::::k   k:::::k O:::::O     O:::::OS:::::S\n            k:::::k  k:::::k  O:::::O     O:::::O S::::SSSS\n            k:::::k k:::::k   O:::::O     O:::::O  SS::::::SSSSS\n            k::::::k:::::k    O:::::O     O:::::O    SSS::::::::SS\n            k:::::::::::k     O:::::O     O:::::O       SSSSSS::::S\n            k:::::::::::k     O:::::O     O:::::O            S:::::S\n            k::::::k:::::k    O::::::O   O::::::O            S:::::S\n           k::::::k k:::::k   O:::::::OOO:::::::OSSSSSSS     S:::::S\n           k::::::k  k:::::k   OO:::::::::::::OO S::::::SSSSSS:::::S\n           k::::::k   k:::::k    OO:::::::::OO   S:::::::::::::::SS\n           kkkkkkkk    kkkkkkk     OOOOOOOOO      SSSSSSSSSSSSSSS\n\n                       \xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB\n                       \xBA Press any key to continue... \xBA\n                       \xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC");
+	tty_writestring("\n\n\n\n           kkkkkkkk                OOOOOOOOO        SSSSSSSSSSSSSSS\n           k::::::k              OO:::::::::OO    SS:::::::::::::::S\n           k::::::k            OO:::::::::::::OO S:::::SSSSSS::::::S\n           k::::::k           O:::::::OOO:::::::OS:::::S     SSSSSSS\n            k:::::k    kkkkkkkO::::::O   O::::::OS:::::S\n            k:::::k   k:::::k O:::::O     O:::::OS:::::S\n            k:::::k  k:::::k  O:::::O     O:::::O S::::SSSS\n            k:::::k k:::::k   O:::::O     O:::::O  SS::::::SSSSS\n            k::::::k:::::k    O:::::O     O:::::O    SSS::::::::SS\n            k:::::::::::k     O:::::O     O:::::O       SSSSSS::::S\n            k:::::::::::k     O:::::O     O:::::O            S:::::S\n            k::::::k:::::k    O::::::O   O::::::O            S:::::S\n           k::::::k k:::::k   O:::::::OOO:::::::OSSSSSSS     S:::::S\n           k::::::k  k:::::k   OO:::::::::::::OO S::::::SSSSSS:::::S\n           k::::::k   k:::::k    OO:::::::::OO   S:::::::::::::::SS\n           kkkkkkkk    kkkkkkk     OOOOOOOOO      SSSSSSSSSSSSSSS\n\n                       \xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB\n                       \xBA Press any key to continue... \xBA\n                       \xC8\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBC");
 	uint8_t last = 0;
 	while(true){
 		printTime();
@@ -116,11 +101,11 @@ void splash(void) {
 
 
 void kernel_main(void) {
-	/* Initialize terminal interface */
-	terminal_initialize();
-	ps2_initialize();
-	cmos_initialize();
-	irq_inititalize();
+	/* Initialize tty interface */
+	tty_init();
+	ps2_init();
+	cmos_init();
+	irq_init();
 	splash();
-	for(;;) {;}
+	for(;;) {asm volatile("hlt");}
 }

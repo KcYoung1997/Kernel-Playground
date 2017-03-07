@@ -22,7 +22,7 @@
 # bytes for it, and finally creating a symbol at the top. The stack grows
 # downwards on x86. The stack is in its own section so it can be marked nobits,
 # which means the kernel file is smaller because it does not contain an
-# uninitialized stack. The stack on x86 must be 16-byte aligned according to the
+# uninit_done stack. The stack on x86 must be 16-byte aligned according to the
 # System V ABI standard and de-facto extensions. The compiler will assume the
 # stack is properly aligned and failure to align the stack will result in
 # undefined behavior.
@@ -110,11 +110,11 @@ _start:
 	# in assembly as languages such as C cannot function without a stack.
 	mov $stack_top, %esp
 
-	# This is a good place to initialize crucial processor state before the
+	# This is a good place to init crucial processor state before the
 	# high-level kernel is entered. It's best to minimize the early
 	# environment where crucial features are offline. Note that the
-	# processor is not fully initialized yet: Features such as floating
-	# point instructions and instruction set extensions are not initialized
+	# processor is not fully init_done yet: Features such as floating
+	# point instructions and instruction set extensions are not init_done
 	# yet. The GDT should be loaded here. Paging should be enabled here.
 	# C++ features such as global constructors and exceptions will require
 	# runtime support to work as well.

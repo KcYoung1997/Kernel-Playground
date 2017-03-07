@@ -36,7 +36,7 @@
 #define PORT_MOUSE_5		4
 #define PORT_KEYBOARD		5
 
-bool ps2_initialized = false;
+bool ps2_init_done = false;
 int port1Mode = 0;
 int port2Mode = 0;
 
@@ -48,71 +48,71 @@ inline bool canWrite(){
 }
 inline void cleanInput(){
 	if(canRead()){
-		terminal_writestring("PS2: Clearing garbage: "); 
-		do { terminal_printhex(inportb(0x60)); } while(canRead());
-		terminal_putchar('\n');
+		tty_writestring("PS2: Clearing garbage: "); 
+		do { tty_printhex(inportb(0x60)); } while(canRead());
+		tty_writechar('\n');
 	}
 }
 
-void ps2_initialize(){
+void ps2_init(){
 	// Information: http://wiki.osdev.org/"8042"_PS/2_Controller
 	//		http://wiki.osdev.org/PS/2_Keyboard
 	// TODO: Check if PS/2 ports exist
 	// TODO: Timeouts on all outfull waits
 
-	terminal_writestring("PS2: Disabling PS/2 ports for diagnostics\n");
+	tty_writestring("PS2: Disabling PS/2 ports for diagnostics\n");
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, DISABLEPORT1);
 	outportb(PS2_REGISTERPORT, DISABLEPORT2);
 
 	cleanInput();
-	terminal_writestring("PS2: Read config: ");
+	tty_writestring("PS2: Read config: ");
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, READCONFIG);
 	while(!canRead()) continue;
 	uint8_t config = inportb(PS2_DATAPORT);
-	terminal_writestring("PS2: Current config: ");
-	for(uint8_t i = 0; i < 8; ++i) terminal_putchar('0' + ((config&(1<<i))!= 0));
-	terminal_putchar('\n');
+	tty_writestring("PS2: Current config: ");
+	for(uint8_t i = 0; i < 8; ++i) tty_writechar('0' + ((config&(1<<i))!= 0));
+	tty_writechar('\n');
 	port2Mode = config & (1<<5);
-	if(port2Mode) terminal_writestring("PS2: Port2 enabled in config\n");
-	else terminal_writestring("PS2: Port2 disabled in config\n");
+	if(port2Mode) tty_writestring("PS2: Port2 enabled in config\n");
+	else tty_writestring("PS2: Port2 disabled in config\n");
 
 	// Set interrupts off for both devices
 	//config &= ~(1 << 0);
 	//config &= ~(1 << 1);
 	// Set translation off
 	config &= ~(1 << 6);
-	terminal_writestring("PS2: New config: ");
-	for(uint8_t i = 0; i < 8; ++i) terminal_putchar('0' + ((config&(1<<i))!= 0));
-	terminal_putchar('\n');
+	tty_writestring("PS2: New config: ");
+	for(uint8_t i = 0; i < 8; ++i) tty_writechar('0' + ((config&(1<<i))!= 0));
+	tty_writechar('\n');
 
-	terminal_writestring("PS2: Write config\n");
+	tty_writestring("PS2: Write config\n");
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, WRITECONFIG);
 	outportb(PS2_DATAPORT, config);
 
-	terminal_writestring("PS2: Performing self-test \n");
+	tty_writestring("PS2: Performing self-test \n");
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, SELFTEST);
 		while(!canRead()) continue;
 	uint8_t test = inportb(PS2_DATAPORT);
 	if(test == SELFTESTFAIL){
 		//TODO: PS/2 has failed self-test
-		terminal_writestring("PS2: Self-test failed\n");
-		ps2_initialized = true;
+		tty_writestring("PS2: Self-test failed\n");
+		ps2_init_done = true;
 		port1Mode = false;
 		port2Mode = false;
 		return;
 	}else if(test != SELFTESTPASS){
-		terminal_writestring("PS2: Self-test returned undefined response\n");
+		tty_writestring("PS2: Self-test returned undefined response\n");
 		//TODO: Unknown error has happened - Maybe buffers should be cleared before this
-		ps2_initialized = true;
+		ps2_init_done = true;
 		port1Mode = false;
 		port2Mode = false;
 		return;
 	}
-	terminal_writestring("PS2: Self-test passed\n");
+	tty_writestring("PS2: Self-test passed\n");
 
 	if(port2Mode)
 	{
@@ -123,7 +123,7 @@ void ps2_initialize(){
 		while(!canRead()) continue;
 		port2Mode = !(inportb(PS2_DATAPORT) & (1<<5));
 		if(port2Mode){
-			terminal_writestring("PS2: Port2 enabled definitely\n");
+			tty_writestring("PS2: Port2 enabled definitely\n");
 			while(!canWrite()) continue;
 			outportb(PS2_REGISTERPORT, DISABLEPORT2);
 		}
@@ -136,29 +136,29 @@ void ps2_initialize(){
 	outportb(PS2_REGISTERPORT, TESTPORT1);
 	while(!canRead()) continue;
 	if(inportb(PS2_DATAPORT) == PORTTESTPASS) port1Mode = PORT_UNKNOWN;
-	else terminal_writestring("PS2: Port1 failed test\n");
+	else tty_writestring("PS2: Port1 failed test\n");
 	if(port2Mode){
 		while(!canWrite()) continue;
 		outportb(PS2_REGISTERPORT, TESTPORT1);
 		while(!canRead()) continue;
 		if(inportb(PS2_DATAPORT) != PORTTESTPASS){
 			 port2Mode = PORT_DISABLED;
-			terminal_writestring("PS2: Port2 failed test\n");
+			tty_writestring("PS2: Port2 failed test\n");
 		}
 	}
 	if(!port1Mode && !port2Mode){
 		//TODO: Both ports don't work, throw and return
-		ps2_initialized = true;
+		ps2_init_done = true;
 		return;
 	}
 
-	terminal_writestring("PS2: Finished port initialization, re-enabling ports\n");
+	tty_writestring("PS2: Finished port initialization, re-enabling ports\n");
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, ENABLEPORT1);
 	while(!canWrite()) continue;
 	outportb(PS2_REGISTERPORT, ENABLEPORT2);
 
-	terminal_writestring("PS2: Disabling scanning on port 1\n");
+	tty_writestring("PS2: Disabling scanning on port 1\n");
 	bool success = false;
 	do{
 		while(!canWrite()) continue;
@@ -169,7 +169,7 @@ void ps2_initialize(){
 	}while(!success);
 	cleanInput();
 
-	terminal_writestring("PS2: Asking port 1 for device identification\n");
+	tty_writestring("PS2: Asking port 1 for device identification\n");
 	success = false;
 	do{
 		while(!canWrite()) continue;
@@ -184,9 +184,9 @@ void ps2_initialize(){
 	if(identity == 0xAB){
 		//TODO:Keyboard
 		cleanInput();
-		terminal_writestring("PS2: Port 1 is a keyboard\n");
+		tty_writestring("PS2: Port 1 is a keyboard\n");
 
-		terminal_writestring("PS2: Slowing typematic on port 1\n");
+		tty_writestring("PS2: Slowing typematic on port 1\n");
 		bool success = false;
 		do{
 			while(!canWrite()) continue;
@@ -201,22 +201,22 @@ void ps2_initialize(){
 		
 	}else if(identity == 0x00){
 		port1Mode = PORT_MOUSE;
-		terminal_writestring("PS2: Port 1 is a mouse\n");
+		tty_writestring("PS2: Port 1 is a mouse\n");
 	}else if(identity == 0x03){
 		port1Mode = PORT_MOUSE;
-		terminal_writestring("PS2: Port 1 is a mouse with scrollwhell\n");
+		tty_writestring("PS2: Port 1 is a mouse with scrollwhell\n");
 	}else if(identity == 0x04){
 		port1Mode = PORT_MOUSE;
-		terminal_writestring("PS2: Port 1 is a 5 button mouse\n");
+		tty_writestring("PS2: Port 1 is a 5 button mouse\n");
 	}else{
 		port1Mode = PORT_UNKNOWN;
-		terminal_writestring("PS2: Port 1 is unknown device code: ");
-		terminal_printhex(identity);
-		while(canRead())	terminal_printhex(inportb(PS2_DATAPORT));
-		terminal_putchar('\n');
+		tty_writestring("PS2: Port 1 is unknown device code: ");
+		tty_printhex(identity);
+		while(canRead())	tty_printhex(inportb(PS2_DATAPORT));
+		tty_writechar('\n');
 	}
 	
-	terminal_writestring("PS2: Re-enabling scanning on port 1\n");
+	tty_writestring("PS2: Re-enabling scanning on port 1\n");
 	do{
 		while(!canWrite()) continue;
 		outportb(PS2_DATAPORT, ENABLESCANNING);
@@ -246,19 +246,19 @@ char keyboard_read() {
 	if(keyCode==0x0D) return '\t';
 	if(keyCode==0x5A) return '\n';
 	if(keyCode==0x58) { capital = capital>0? 0 : 32; return 0; }
-	if(keyCode==fKeys[0]) terminal_setcolor(0x0F); //White on black
-	if(keyCode==fKeys[1]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[2]) terminal_setcolor(0x1E); //Green on black
-	if(keyCode==fKeys[3]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[4]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[5]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[6]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[7]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[8]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[9]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[10]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==fKeys[11]) terminal_setcolor(0x02); //Green on black
-	if(keyCode==0x76) terminal_clear(); //ESC == clear
+	if(keyCode==fKeys[0]) tty_cursorcolor(0x0F); //White on black
+	if(keyCode==fKeys[1]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[2]) tty_cursorcolor(0x1E); //Green on black
+	if(keyCode==fKeys[3]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[4]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[5]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[6]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[7]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[8]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[9]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[10]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==fKeys[11]) tty_cursorcolor(0x02); //Green on black
+	if(keyCode==0x76) tty_clear(); //ESC == clear
 
 	return 0;
 }

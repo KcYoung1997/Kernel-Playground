@@ -22,7 +22,7 @@ struct time{
 	uint8_t century;
 };
 
-extern bool cmos_initialized;
+extern bool cmos_init_done;
 extern bool BCDmode;
 extern bool AMPMmode;
 extern struct time last_time;
@@ -37,7 +37,7 @@ inline bool rtc_isupdating(){
 }
 struct time get_rtc();
 void update_rtc();
-void cmos_initialize();
+void cmos_init();
 void waitSecond(uint32_t seconds);
 
 #endif

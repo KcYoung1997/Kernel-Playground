@@ -37,9 +37,9 @@ void make_idt_entry(int num, unsigned long base, unsigned short selector, unsign
 	idt_entry[num].flags = flags;
 }
 void keyboard(void) {
-	terminal_putchar('@');
-	if(!ps2_initialized) terminal_putchar(inportb(0x60));
-	terminal_putchar(keyboard_read());
+	tty_writechar('@');
+	if(!ps2_init_done) tty_writechar(inportb(0x60));
+	tty_writechar(keyboard_read());
 }
 #define PIC_MASTER_CMD 0x20
 #define PIC_MASTER_DATA 0x21
@@ -47,8 +47,8 @@ void keyboard(void) {
 #define PIC_SLAVE_DATA 0xA1
 
 #define PIC_CMD_EOI 0x20
-void irq_inititalize(void) {
-	terminal_writestring("Beginning initialization\n");
+void irq_init(void) {
+	tty_writestring("Beginning initialization\n");
 	/* set up cascading mode */
 	outportb(PIC_MASTER_CMD, 0x10 + 0x01);
 	outportb(PIC_SLAVE_CMD,  0x10 + 0x01);
@@ -63,10 +63,10 @@ void irq_inititalize(void) {
 	outportb(PIC_MASTER_DATA, 0x01);
 	outportb(PIC_SLAVE_DATA, 0x01);
 
-	terminal_writestring("Resetting masks\n");
+	tty_writestring("Resetting masks\n");
 	outportb(PIC_MASTER_DATA, 0);
 	outportb(PIC_SLAVE_DATA, 0);
-	terminal_writestring("Init done.\n");
+	tty_writestring("Init done.\n");
 
 	struct idt_p {
 		unsigned short limit;
@@ -90,6 +90,6 @@ void irq_inititalize(void) {
 	
 	lidt_core((unsigned long)&idtp);
 	
-	terminal_writestring("IRQ initialized\n");
+	tty_writestring("IRQ init_done\n");
 }
 

@@ -10,7 +10,7 @@
 
 //Information: http://wiki.osdev.org/CMOS
 
-bool cmos_initialized = false;
+bool cmos_init_done = false;
 bool BCDmode;
 bool AMPMmode;
 struct time last_time;
@@ -75,7 +75,7 @@ void waitSecond(uint32_t seconds){
 	}
 }
 
-void cmos_initialize(){
+void cmos_init(){
 	uint8_t flagsB = get_rtc_register(RTC_REG_STATUS_B);
 	AMPMmode = !(flagsB & 0x2);
 	BCDmode = !(flagsB & 0x4);

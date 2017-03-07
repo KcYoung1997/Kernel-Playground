@@ -4,12 +4,11 @@
 
 #include <stdint.h>
 
-extern int irq_default(void);
 extern int irq_test(void);
 void _test(){
-	terminal_setcolor(0xE0);
-	terminal_writestring("IRQ test\n");
-	terminal_setcolor(0x0F);
+	tty_cursorcolor(0xE0);
+	tty_writestring("IRQ test\n");
+	tty_cursorcolor(0x0F);
 }
 
 extern int irq_kbd(void);
@@ -18,23 +17,24 @@ void _irq_kbd(void) {
 	for(i=0;i<10000;i++){
 		if(!(inportb(0x64)&1)) continue;
 		while(inportb(0x64)&1){
-			terminal_printhex(inportb(0x60));
-			terminal_putchar(' ');
+			tty_writef("%#x ", inportb(0x60));
+
 		}
 		break;
 	}
-	if(i==1000) terminal_writestring("Spurios keyboard IRQ");
+	if(i==1000) tty_writestring("Spurios keyboard IRQ");
 }
 
 extern int irq_cmos(void);
 void _irq_cmos(void) {
-	terminal_writestring("CMOS tick");
+	tty_writestring("CMOS tick");
 }
-extern int irq_default(void)
+
+extern int irq_default(void);
 void _irq_default(uint8_t num) {
-	terminal_writestring("IRQ: ");
-	terminal_printhex(num);
-	terminal_putchar('\n');
+	tty_writestring("IRQ: ");
+	tty_printhex(num);
+	tty_writechar('\n');
 }
 // From now on, memset is needed. 
 
@@ -71,8 +71,8 @@ void make_idt_entry(int num, unsigned long base, unsigned short selector, unsign
 #define PIC_SLAVE_DATA 0xA1
 
 #define PIC_CMD_EOI 0x20
-void irq_inititalize(void) {
-	terminal_writestring("IRQ initialization\n");
+void irq_init(void) {
+	tty_writestring("IRQ initialization\n");
 
 	struct idt_p {
 		unsigned short limit;
@@ -89,16 +89,16 @@ void irq_inititalize(void) {
 		make_idt_entry(i, (unsigned)irq_default, 0x08, 0x8E);
 	}
 	make_idt_entry(33, (unsigned)irq_kbd, 0x08, 0x8E);
-	make_idt_entry(43, (unsigned)irq_cmos, 0x08, 0x8E);
+	make_idt_entry(40, (unsigned)irq_cmos, 0x08, 0x8E);
 	make_idt_entry(0x2f, (unsigned)irq_test, 0x08, 0x8E);
 	
 	lidt_core((unsigned long)&idtp);
 
 	asm volatile("int $0x2f");
 	
-	terminal_writestring("IRQ initialized\n");
+	tty_writestring("IRQ init_done\n");
 
-	terminal_writestring("PIC initialization\n");
+	tty_writestring("PIC initialization\n");
 	/* set up cascading mode */
 	outportb(PIC_MASTER_CMD, 0x10 + 0x01);
 	outportb(PIC_SLAVE_CMD,  0x10 + 0x01);
@@ -113,10 +113,10 @@ void irq_inititalize(void) {
 	outportb(PIC_MASTER_DATA, 0x01);
 	outportb(PIC_SLAVE_DATA, 0x01);
 
-	terminal_writestring("Resetting masks\n");
+	tty_writestring("Resetting masks\n");
 	outportb(PIC_MASTER_DATA, 0);
 	outportb(PIC_SLAVE_DATA, 0);
-	terminal_writestring("PIC initialized\n");
+	tty_writestring("PIC init_done\n");
 
 	asm volatile("sti");
 }
