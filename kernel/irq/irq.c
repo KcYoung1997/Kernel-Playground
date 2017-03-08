@@ -5,14 +5,24 @@
 
 #include <stdint.h>
 
-extern int irq_test(void);
-void _test(){
-	tty_cursorcolor(0xE0);
-	tty_writestring("IRQ test\n");
-	tty_cursorcolor(0x0F);
-}
-
 extern int irq_kbd(void);
+extern int irq1(void);
+extern int irq2(void);
+extern int irq3(void);
+extern int irq4(void);
+extern int irq5(void);
+extern int irq6(void);
+extern int irq7(void);
+extern int irq8(void);
+extern int irq9(void);
+extern int irq10(void);
+extern int irq11(void);
+extern int irq12(void);
+extern int irq13(void);
+extern int irq14(void);
+extern int irq15(void);
+
+
 void _irq_kbd(void) {
 	int i;
 	for(i=0;i<10000;i++){
@@ -41,7 +51,6 @@ void printTime(){
 	tty_cursorposition(28,2);
 	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
 }
-extern int irq_cmos(void);
 void _irq_cmos(void) {
 	outportb(0x70, 0x0C);	// select register C
 	inportb(0x71);		// just throw away contents
@@ -55,11 +64,13 @@ void _irq_cmos(void) {
 	asm volatile("sti");
 }
 
+
 extern int irq_default(void);
-void _irq_default(uint8_t num) {
-	tty_writestring("IRQ: ");
-	tty_printhex(num);
-	tty_writechar('\n');
+void _irq_default(int num) {
+//	tty_writef("IRQ:%d\n",num);
+	if(num==1) _irq_kbd();
+	else if(num==8) _irq_cmos();
+
 }
 // From now on, memset is needed. 
 
@@ -113,13 +124,23 @@ void irq_init(void) {
 	for (int i = 0; i < 256; i++) {
 		make_idt_entry(i, (unsigned)irq_default, 0x08, 0x8E);
 	}
-	make_idt_entry(33, (unsigned)irq_kbd, 0x08, 0x8E);
-	make_idt_entry(40, (unsigned)irq_cmos, 0x08, 0x8E);
-	make_idt_entry(0x2f, (unsigned)irq_test, 0x08, 0x8E);
+	make_idt_entry(33, (unsigned)irq1, 0x08, 0x8E);
+	make_idt_entry(34, (unsigned)irq2, 0x08, 0x8E);
+	make_idt_entry(35, (unsigned)irq3, 0x08, 0x8E);
+	make_idt_entry(36, (unsigned)irq4, 0x08, 0x8E);
+	make_idt_entry(37, (unsigned)irq5, 0x08, 0x8E);
+	make_idt_entry(38, (unsigned)irq6, 0x08, 0x8E);
+	make_idt_entry(39, (unsigned)irq7, 0x08, 0x8E);
+	make_idt_entry(40, (unsigned)irq8, 0x08, 0x8E);
+	make_idt_entry(41, (unsigned)irq9, 0x08, 0x8E);
+	make_idt_entry(42, (unsigned)irq10, 0x08, 0x8E);
+	make_idt_entry(43, (unsigned)irq11, 0x08, 0x8E);
+	make_idt_entry(44, (unsigned)irq12, 0x08, 0x8E);
+	make_idt_entry(45, (unsigned)irq13, 0x08, 0x8E);
+	make_idt_entry(46, (unsigned)irq14, 0x08, 0x8E);
+	make_idt_entry(47, (unsigned)irq15, 0x08, 0x8E);
 	
 	lidt_core((unsigned long)&idtp);
-
-	asm volatile("int $0x2f");
 	
 	tty_writestring("IRQ init_done\n");
 

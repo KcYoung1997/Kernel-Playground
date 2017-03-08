@@ -1,12 +1,10 @@
 #TODO:
-* Print support for all int types
-* Printf
-* VGA Cursor Support
 * Interrupts
   * Implement my own way
   * PIC
   * CMOS
   * Preferably all, with ability for programs to add listeners
+* VGA Cursor Support
 * Complete Key Mapping
 * Interactive Shell
   * Lockdown cursor position
