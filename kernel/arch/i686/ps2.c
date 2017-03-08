@@ -231,6 +231,7 @@ static uint8_t numeric[10] = {0x45,0x16,0x1E,0x26,0x25,0x2E,0x36,0x3D,0x3E,0x46}
 
 int capital = 0; //32 if capital as 'a'-'A'== 32
 char keyboard_read() {
+	for(int i = 0; i < 10000; i++) if(canRead()) break;
 	if(!canRead()) return 0;
 	uint8_t keyCode = inportb(0x60);
 	if(keyCode == 0xF0) inportb(0x60);

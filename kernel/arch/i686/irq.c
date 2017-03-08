@@ -29,7 +29,7 @@ struct idt_t idt_entry[256];
 
 extern void lidt_core(unsigned long idtp);
 
-void make_idt_entry(int num, unsigned long base, unsigned short selector, unsigned char flags) {
+void set_idt_entry(int num, unsigned long base, unsigned short selector, unsigned char flags) {
 	idt_entry[num].base_low = base;
 	idt_entry[num].base_high = (base >> 16);
 	idt_entry[num].selector = selector;
@@ -80,12 +80,12 @@ void irq_init(void) {
 	memset(&idt_entry, '\0', 256);
 	
 	for (int i = 0; i < 32; i++) {
-		make_idt_entry(i, (unsigned)irq_keyboard, 0x08, 0x8E);
+		set_idt_entry(i, (unsigned)irq_keyboard, 0x08, 0x8E);
 	}
-	make_idt_entry(32, (unsigned)irq_keyboard, 0x08, 0x8E);
-	make_idt_entry(33, (unsigned)irq_keyboard, 0x08, 0x8E);
+	set_idt_entry(32, (unsigned)irq_keyboard, 0x08, 0x8E);
+	set_idt_entry(33, (unsigned)irq_keyboard, 0x08, 0x8E);
 	for (int i = 34; i < 48; i++) {
-		make_idt_entry(i, (unsigned)irq_keyboard, 0x08, 0x8E);
+		set_idt_entry(i, (unsigned)irq_keyboard, 0x08, 0x8E);
 	}
 	
 	lidt_core((unsigned long)&idtp);

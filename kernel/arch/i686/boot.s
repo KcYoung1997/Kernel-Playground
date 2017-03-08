@@ -36,7 +36,7 @@ lidt_core:
 	pushal
 	mov $0x20, %al
 	mov $0x20, %dx
-	out %al, %dx
+	outb %al, %dx
 	push $\i
 	call _irq_default
 	pop %edx

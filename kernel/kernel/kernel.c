@@ -48,7 +48,25 @@ void exitSplash(void) {
 	}
 
 }
+
+const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
+void printTime(){
+	struct time current = get_rtc();
+	tty_cursorposition(36,1);
+
+	int d = current.day;
+	int y = (current.century*100)+current.year;
+	int m = current.month;	
+	int weekday  = (d += d< 3 ? y-- : y - 2, 23*m/9 + d + 4 + y/4- y/100 + y/400)%7;
+	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
+	tty_cursorposition(28,2);
+	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
+}
+
 void splash(void) {
+	set_irq_func(1, exitSplash);
+	set_irq_func(8,printTime);
 	tty_clear();
 	uint8_t* vga = (uint8_t*) 0xB8000;
 	srand(PIT_getclock() << 24 | PIT_getclock() << 16 | PIT_getclock() << 8 | PIT_getclock());
