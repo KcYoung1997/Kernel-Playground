@@ -5,6 +5,10 @@
 #include <stdint.h>
 
 
+
+#define MODULE "PS2"
+
+
 #define PS2_DATAPORT 0x60
 #define PS2_REGISTERPORT 0x64
 
@@ -40,15 +44,21 @@ bool ps2_init_done = false;
 int port1Mode = 0;
 int port2Mode = 0;
 
+inline void safe_write(uint8_t port, uint8_t data) {
+	while(inportb(PS2_REGISTERPORT) & (1<<1)) continue;
+	outportb(port, data);
+}
+
+inline uint8_t safe_read(uint8_t port) {
+	while(!(inportb(PS2_REGISTERPORT) & 1)) continue;
+	return inportb(port);
+}
 inline bool canRead(){
 	return (inportb(PS2_REGISTERPORT) & 1);
 }
-inline bool canWrite(){
-	return !(inportb(PS2_REGISTERPORT) & (1<<1));
-}
 inline void cleanInput(){
 	if(canRead()){
-		tty_writestring("PS2: Clearing garbage: "); 
+		MODULE_INFO tty_writestring("Clearing garbage: "); 
 		do { tty_printhex(inportb(0x60)); } while(canRead());
 		tty_writechar('\n');
 	}
@@ -60,168 +70,140 @@ void ps2_init(){
 	// TODO: Check if PS/2 ports exist
 	// TODO: Timeouts on all outfull waits
 
-	tty_writestring("PS2: Disabling PS/2 ports for diagnostics\n");
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, DISABLEPORT1);
-	outportb(PS2_REGISTERPORT, DISABLEPORT2);
+	MODULE_INFO tty_writestring("init start\n");
+	safe_write(PS2_REGISTERPORT, DISABLEPORT1);
+	safe_write(PS2_REGISTERPORT, DISABLEPORT2);
 
 	cleanInput();
-	tty_writestring("PS2: Read config: ");
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, READCONFIG);
-	while(!canRead()) continue;
-	uint8_t config = inportb(PS2_DATAPORT);
-	tty_writestring("PS2: Current config: ");
+	MODULE_INFO tty_writestring("Current config: ");
+	safe_write(PS2_REGISTERPORT, READCONFIG);
+	uint8_t config = safe_read(PS2_DATAPORT);
 	for(uint8_t i = 0; i < 8; ++i) tty_writechar('0' + ((config&(1<<i))!= 0));
-	tty_writechar('\n');
 	port2Mode = config & (1<<5);
-	if(port2Mode) tty_writestring("PS2: Port2 enabled in config\n");
-	else tty_writestring("PS2: Port2 disabled in config\n");
+	if(port2Mode) tty_writestring(" Port2 enabled\n");
+	else tty_writestring(" Port2 disabled\n");
 
-	// Set interrupts off for both devices
+	//TODO: Set interrupts off for both devices
 	//config &= ~(1 << 0);
 	//config &= ~(1 << 1);
 	// Set translation off
 	config &= ~(1 << 6);
-	tty_writestring("PS2: New config: ");
+
+	MODULE_INFO tty_writestring("Write new config ");
 	for(uint8_t i = 0; i < 8; ++i) tty_writechar('0' + ((config&(1<<i))!= 0));
 	tty_writechar('\n');
+	safe_write(PS2_REGISTERPORT, WRITECONFIG);
+	safe_write(PS2_DATAPORT, config);
 
-	tty_writestring("PS2: Write config\n");
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, WRITECONFIG);
-	outportb(PS2_DATAPORT, config);
-
-	tty_writestring("PS2: Performing self-test \n");
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, SELFTEST);
-		while(!canRead()) continue;
-	uint8_t test = inportb(PS2_DATAPORT);
+	MODULE_INFO tty_writestring("Performing self-test \n");
+	safe_write(PS2_REGISTERPORT, SELFTEST);
+	uint8_t test = safe_read(PS2_DATAPORT);
 	if(test == SELFTESTFAIL){
 		//TODO: PS/2 has failed self-test
-		tty_writestring("PS2: Self-test failed\n");
+		MODULE_ERROR tty_writestring("Self-test failed\n");
 		ps2_init_done = true;
 		port1Mode = false;
 		port2Mode = false;
 		return;
 	}else if(test != SELFTESTPASS){
-		tty_writestring("PS2: Self-test returned undefined response\n");
+		MODULE_ERROR tty_writestring("Self-test returned undefined response\n");
 		//TODO: Unknown error has happened - Maybe buffers should be cleared before this
 		ps2_init_done = true;
 		port1Mode = false;
 		port2Mode = false;
 		return;
 	}
-	tty_writestring("PS2: Self-test passed\n");
+	MODULE_SUCCESS tty_writestring("Self-test passed\n");
 
 	if(port2Mode)
 	{
-		while(!canWrite()) continue;
-		outportb(PS2_REGISTERPORT, ENABLEPORT2);
-		while(!canWrite()) continue;
-		outportb(PS2_REGISTERPORT, READCONFIG);
-		while(!canRead()) continue;
-		port2Mode = !(inportb(PS2_DATAPORT) & (1<<5));
+		safe_write(PS2_REGISTERPORT, ENABLEPORT2);
+		safe_write(PS2_REGISTERPORT, READCONFIG);
+		port2Mode = !(safe_read(PS2_DATAPORT) & (1<<5));
 		if(port2Mode){
-			tty_writestring("PS2: Port2 enabled definitely\n");
-			while(!canWrite()) continue;
-			outportb(PS2_REGISTERPORT, DISABLEPORT2);
+			MODULE_INFO tty_writestring("Port2 exists\n");
+			safe_write(PS2_REGISTERPORT, DISABLEPORT2);
 		}
 	}
 
 	
 	// Test if ports work
 	// TODO: get specifics about port failures
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, TESTPORT1);
-	while(!canRead()) continue;
-	if(inportb(PS2_DATAPORT) == PORTTESTPASS) port1Mode = PORT_UNKNOWN;
-	else tty_writestring("PS2: Port1 failed test\n");
+	safe_write(PS2_REGISTERPORT, TESTPORT1);
+	if(safe_read(PS2_DATAPORT) == PORTTESTPASS) port1Mode = PORT_UNKNOWN;
+	else { MODULE_WARNING tty_writestring("Port1 failed test\n"); }
 	if(port2Mode){
-		while(!canWrite()) continue;
-		outportb(PS2_REGISTERPORT, TESTPORT1);
-		while(!canRead()) continue;
-		if(inportb(PS2_DATAPORT) != PORTTESTPASS){
-			 port2Mode = PORT_DISABLED;
-			tty_writestring("PS2: Port2 failed test\n");
+		safe_write(PS2_REGISTERPORT, TESTPORT1);
+		if(safe_read(PS2_DATAPORT) != PORTTESTPASS){
+			port2Mode = PORT_DISABLED;
+			MODULE_WARNING tty_writestring("Port2 failed test\n");
 		}
 	}
 	if(!port1Mode && !port2Mode){
 		//TODO: Both ports don't work, throw and return
+		MODULE_ERROR tty_writestring("Both ports are disabled, PS/2 support inactive\n");
 		ps2_init_done = true;
 		return;
 	}
 
-	tty_writestring("PS2: Finished port initialization, re-enabling ports\n");
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, ENABLEPORT1);
-	while(!canWrite()) continue;
-	outportb(PS2_REGISTERPORT, ENABLEPORT2);
+	MODULE_INFO tty_writestring("Finished port initialization, re-enabling ports\n");
+	safe_write(PS2_REGISTERPORT, ENABLEPORT1);
+	safe_write(PS2_REGISTERPORT, ENABLEPORT2);
 
-	tty_writestring("PS2: Disabling scanning on port 1\n");
+	MODULE_INFO tty_writestring("Disabling scanning on port 1\n");
 	bool success = false;
 	do{
-		while(!canWrite()) continue;
 		cleanInput();
-		outportb(PS2_DATAPORT, DISABLESCANNING);
-		while(!canRead()) continue;
-		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+		safe_write(PS2_DATAPORT, DISABLESCANNING);
+		if(safe_read(PS2_DATAPORT) == 0xFA) success = true;
 	}while(!success);
 	cleanInput();
 
-	tty_writestring("PS2: Asking port 1 for device identification\n");
+	MODULE_INFO tty_writestring("Asking port 1 for device identification\n");
 	success = false;
 	do{
-		while(!canWrite()) continue;
-		outportb(PS2_DATAPORT,PS2_IDENTIFY);
-		while(!canRead()) continue;
-		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+		safe_write(PS2_DATAPORT,PS2_IDENTIFY);
+		if(safe_read(PS2_DATAPORT) == 0xFA) success = true;
 	}while(!success);
 
 
-	while(!canRead()) continue;
-	uint8_t identity = inportb(PS2_DATAPORT);
+	uint8_t identity = safe_read(PS2_DATAPORT);
 	if(identity == 0xAB){
 		//TODO:Keyboard
 		cleanInput();
-		tty_writestring("PS2: Port 1 is a keyboard\n");
+		MODULE_INFO tty_writestring("Port 1 is a keyboard\n");
 
-		tty_writestring("PS2: Slowing typematic on port 1\n");
+		MODULE_INFO tty_writestring("Slowing typematic on port 1\n");
 		bool success = false;
 		do{
-			while(!canWrite()) continue;
 			cleanInput();
-			outportb(PS2_DATAPORT, 0xF3); // Set typematic
-			outportb(PS2_DATAPORT, 0xFE); // Slowest mode 11111 11 0
-			while(!canRead()) continue;
-			if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+			safe_write(PS2_DATAPORT, 0xF3); // Set typematic
+			safe_write(PS2_DATAPORT, 0xFE); // Slowest mode 11111 11 0
+			if(safe_read(PS2_DATAPORT) == 0xFA) success = true;
 		}while(!success);
 		port1Mode = PORT_KEYBOARD;
 
 		
 	}else if(identity == 0x00){
 		port1Mode = PORT_MOUSE;
-		tty_writestring("PS2: Port 1 is a mouse\n");
+		MODULE_INFO tty_writestring("Port 1 is a mouse\n");
 	}else if(identity == 0x03){
 		port1Mode = PORT_MOUSE;
-		tty_writestring("PS2: Port 1 is a mouse with scrollwhell\n");
+		MODULE_INFO tty_writestring("Port 1 is a mouse with scrollwhell\n");
 	}else if(identity == 0x04){
 		port1Mode = PORT_MOUSE;
-		tty_writestring("PS2: Port 1 is a 5 button mouse\n");
+		MODULE_INFO tty_writestring("Port 1 is a 5 button mouse\n");
 	}else{
 		port1Mode = PORT_UNKNOWN;
-		tty_writestring("PS2: Port 1 is unknown device code: ");
-		tty_printhex(identity);
-		while(canRead())	tty_printhex(inportb(PS2_DATAPORT));
+		MODULE_WARNING tty_writef("Port 1 is unknown device code: %#2x", identity);
+		while(canRead()) tty_writef("%#2x ", inportb(PS2_DATAPORT));
 		tty_writechar('\n');
 	}
 	
-	tty_writestring("PS2: Re-enabling scanning on port 1\n");
+	MODULE_INFO tty_writestring("Done, re-enabling scanning on port 1\n");
 	do{
-		while(!canWrite()) continue;
-		outportb(PS2_DATAPORT, ENABLESCANNING);
-		while(!canRead()) continue;
-		if(inportb(PS2_DATAPORT) == 0xFA) success = true;
+		safe_write(PS2_DATAPORT, ENABLESCANNING);
+		if(safe_read(PS2_DATAPORT) == 0xFA) success = true;
 	}while(!success);
 }
 

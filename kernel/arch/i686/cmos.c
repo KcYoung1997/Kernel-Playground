@@ -75,15 +75,33 @@ void waitSecond(uint32_t seconds){
 	}
 }
 
-void cmos_init(){
+uint8_t check_register_b(void) {
 	uint8_t flagsB = get_rtc_register(RTC_REG_STATUS_B);
 	AMPMmode = !(flagsB & 0x2);
 	BCDmode = !(flagsB & 0x4);
+	return flagsB;
+}
+
+void cmos_init(void) {
+	tty_writestring("[CMOS] init start\n");
+	uint8_t flags = check_register_b();
+	int origAM = AMPMmode;
+	int origBCD = BCDmode;
+	tty_writef("[CMOS] 12 hour mode %s\n", AMPMmode?"enabled, will attempt to disable":"disabled");
+	tty_writef("[CMOS] BCD mode %s\n", BCDmode?"enabled, will attempt to disable":"disabled");
 	//Select register B
 	outportb(CMOS_ADDRESS_REG, RTC_REG_STATUS_B);
 	//Write back flags, with IRQ enabled
-	outportb(CMOS_DATA_REG, flagsB | 0x40);
-	//
+	outportb(CMOS_DATA_REG, (flags | 0x40)&(~(0x6)));
+	check_register_b();
+	if(origAM) {
+		tty_writef("[CMOS] 12 hour mode %s\n", AMPMmode?"disabled succesfully":"still enabled");
+	}
+	if(origBCD) {
+		tty_writef("[CMOS] BCD mode %s\n", BCDmode?"disabled succesfully":"still enabled");
+	}
+
+
 	uint8_t rate = 0x0F;			// rate must be above 2 and not over 15
 	outportb(0x70, 0x8A);		// set index to register A, disable NMI
 	char prev=inportb(0x71);	// get initial value of register A

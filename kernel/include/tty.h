@@ -5,6 +5,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MODULE_NONE2(X, Y) 	tty_writef("[%s:%d] ", X, Y);
+#define MODULE_NONE MODULE_NONE2(__FILENAME__, __LINE__)
+#define MODULE_INFO2(X, Y) 	tty_writef("[\033cB0%s:%d\033r] ", X, Y);
+#define MODULE_INFO MODULE_INFO2(__FILENAME__, __LINE__)
+#define MODULE_SUCCESS2(X, Y) 	tty_writef("[\033c20%s:%d\033r] ", X, Y);
+#define MODULE_SUCCESS MODULE_SUCCESS2(__FILENAME__, __LINE__)
+#define MODULE_WARNING2(X, Y) 	tty_writef("[\033cE0%s:%d\033r] ", X, Y);
+#define MODULE_WARNING MODULE_WARNING2(__FILENAME__, __LINE__)
+#define MODULE_ERROR2(X, Y) 	tty_writef("\033c0F[\033c40%s:%d\033c0F]\033r ", X, Y);
+#define MODULE_ERROR MODULE_ERROR2(__FILENAME__, __LINE__)
+
 #define tty_clear tty_init
 
 //Toggle to write bottom to top

@@ -7,6 +7,8 @@
 #include <kernel/portb.h>
 #include <kernel/cmos.h>
 #include <kernel/irq.h>
+#include <kernel/gdt.h>
+#include <kernel/pic.h>
 
 
 #include <string.h>
@@ -49,6 +51,7 @@ void exitSplash(void) {
 
 }
 
+int ticks = 0;
 const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
 void printTime(){
@@ -62,6 +65,9 @@ void printTime(){
 	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
 	tty_cursorposition(28,2);
 	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
+	ticks++;
+	tty_cursorposition(35,3);
+	tty_writef("Ticks: %d", ticks);
 }
 
 void splash(void) {
@@ -99,14 +105,15 @@ void splash(void) {
 	}
 }
 
-
 void kernel_main(void) {
 	tty_init();
 	ps2_init();
 	cmos_init();
 	irq_init();
+	gdt_init();
+	pic_init();
 	// Enable interrupts
 	asm volatile("sti");
-	splash();
+	//splash();
 	for(;;) {asm volatile("hlt");}
 }

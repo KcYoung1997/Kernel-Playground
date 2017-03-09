@@ -21,6 +21,15 @@ stack_top:
 
 
 .section .text
+# Setup GDT table
+.global lgdt_core
+.type lgdt_core, @function
+lgdt_core:
+	movl 4(%esp), %eax
+	lgdt (%eax)
+	ret
+
+
 # Setup IDT table
 .global lidt_core
 .type lidt_core, @function

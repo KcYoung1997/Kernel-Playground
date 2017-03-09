@@ -2,6 +2,7 @@
 #include <kernel/ps2.h>
 #include <kernel/portb.h>
 #include <kernel/cmos.h>
+#include <kernel/memset.h>
 
 #include <stdint.h>
 
@@ -52,15 +53,6 @@ void _irq_default(int num) {
 	if(irqfunc[num-1])irqfunc[num-1]();
 
 }
-// From now on, memset is needed. 
-
-void memset(void* bufptr, unsigned char value, int size) {
-	unsigned char* buf = (unsigned char *)bufptr;
-	for (int i = 0; i < size; i++) {
-		buf[i] = value;
-	}
-}	
-
 struct idt_t {
 	unsigned short base_low;
 	unsigned short selector;
@@ -96,9 +88,11 @@ void irq_init(void) {
 	
 	memset(&idt_entry, '\0', 256);
 	
+	// 0-1Fh are reserved for CPU http://wiki.osdev.org/PIC#Protected_Mode
 	for (int i = 0; i < 33; i++) {
 		set_idt_entry(i, (unsigned)irq_default, 0x08, 0x8E);
 	}
+	// 0x20-0x2E are mapped to IRQs by PIC init
 	for(int i = 0; i < 15; i++) {
 		set_idt_entry(33+i, (unsigned)irqnum[i], 0x08, 0x8E);
 	}
@@ -111,30 +105,5 @@ void irq_init(void) {
 	tty_writestring("IRQ init_done\n");
 
 
-#define PIC_MASTER_CMD 0x20
-#define PIC_MASTER_DATA 0x21
-#define PIC_SLAVE_CMD 0xA0
-#define PIC_SLAVE_DATA 0xA1
-
-#define PIC_CMD_EOI 0x20
-	tty_writestring("PIC initialization\n");
-	/* set up cascading mode */
-	outportb(PIC_MASTER_CMD, 0x10 + 0x01);
-	outportb(PIC_SLAVE_CMD,  0x10 + 0x01);
-	/* Setup master's vector offset */
-	outportb(PIC_MASTER_DATA, 0x20);
-	/* Tell the slave its vector offset */
-	outportb(PIC_SLAVE_DATA, 0x28);
-	/* Tell the master that he has a slave */
-	outportb(PIC_MASTER_DATA, 4);
-	outportb(PIC_SLAVE_DATA, 2);
-	/* Enabled 8086 mode */
-	outportb(PIC_MASTER_DATA, 0x01);
-	outportb(PIC_SLAVE_DATA, 0x01);
-
-	tty_writestring("Resetting masks\n");
-	outportb(PIC_MASTER_DATA, 0);
-	outportb(PIC_SLAVE_DATA, 0);
-	tty_writestring("PIC init_done\n");
 }
 

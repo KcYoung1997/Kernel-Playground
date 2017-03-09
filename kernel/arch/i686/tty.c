@@ -7,6 +7,7 @@
 #include <kernel/tty.h>
  
 #include "vga.h"
+
  
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
@@ -99,7 +100,26 @@ void tty_writechar(char c) {
  
 void tty_write(const char* data, size_t size) {
 	for (size_t i = 0; i < size; i++)
+	{
+		if(data[i] == '\033'){
+			//ANSI escape sequence https://en.wikipedia.org/wiki/ANSI_escape_code
+			i++;
+			if(data[i] == 'r') {
+				tty_cursorcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
+			}else if(data[i] == 'c') {
+				tty_cursorcolor(vga_entry_color(
+					data[i+1]<= '9'? data[i+1]-'0' :
+					data[i+1]<='F'? data[i+1]-'A'+10:
+							data[i+1]-'a'+10,
+					data[i+2]<= '9'? data[i+2]-'0' :
+					data[i+2]<='F'? data[i+2]-'A'+10:
+							data[i+2]-'a'+10));
+				i+=2;
+			}
+			continue;
+		}
 		tty_writechar(data[i]);
+	}
 }
  
 void tty_writestring(const char* data) {
@@ -125,7 +145,6 @@ int tty_writef(const char* restrict format, ...) {
 			written += amount;
 			continue;
 		}
-		
 		//store start of format and increment
 //		const char* format_begin = format++;
 		//FLAGS
@@ -180,7 +199,7 @@ int tty_writef(const char* restrict format, ...) {
 			for(int i = 0; i < width; i++, num /=10) 
 				digits[10-i] = '0' + num % 10;
 			//keep going until no more digits
-			for(;width<10 && num > 0; width--, num /=10) 
+			for(;width<10 && num > 0; width++, num /=10) 
 				digits[10-width] = '0' + num % 10;
 			tty_write(((const char*)digits)+11-width,width);
 			written += width;
@@ -198,7 +217,7 @@ int tty_writef(const char* restrict format, ...) {
 			for(int i = 0; i < width; i++, num /=10) 
 				digits[10-i] = '0' + num % 10;
 			//keep going until no more digits
-			for(;width<10 && num > 0; width--, num /=10) 
+			for(;width>0 && num > 0; width++, num /=10) 
 				digits[10-width] = '0' + num % 10;
 			tty_write(((const char*)digits)+11-width,width);
 			written += width;
@@ -213,7 +232,6 @@ int tty_writef(const char* restrict format, ...) {
 			int len = strlen(str);
 			written += len;
 			tty_write(str,len);
-			
 		} else	if(*format == 'p') {
 			//Pointer address
 		} else	if(*format == 'n') {

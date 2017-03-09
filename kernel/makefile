@@ -31,7 +31,10 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 
 OBJS:= $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
-irq/irq.o \
+kernel/irq.o \
+kernel/gdt.o \
+kernel/pic.o \
+lib/memset.o \
 
 CRTI_OBJ=$(ARCHDIR)/crti.o
 CRTN_OBJ=$(ARCHDIR)/crtn.o
@@ -98,7 +101,7 @@ $(OUTBIN): $(INTERNAL_OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
 
 .c.o:
-	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
+	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS) -D __FILENAME__=\"$(shell echo $(basename $(<F)) | tr a-z A-Z)\"
 
 .cpp.o:
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
