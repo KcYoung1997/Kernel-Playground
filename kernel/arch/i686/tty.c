@@ -7,7 +7,6 @@
 #include <kernel/tty.h>
  
 #include "vga.h"
-
  
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
@@ -247,19 +246,26 @@ int tty_writef(const char* restrict format, ...) {
 			case 12:
 			case 13:
 			    tty_writestring("th");
+				break;
+			default:
+				switch(num % 10)
+				{
+				case 1:
+					tty_writestring("st");
+					break;
+				case 2:
+					tty_writestring("nd");
+					break;					
+				case 3:
+					tty_writestring("rd");
+					break;					
+				default:
+					tty_writestring("th");
+					break;					
+				}
 			}
 
-			switch(num % 10)
-			{
-			case 1:
-			    tty_writestring("st");
-			case 2:
-			    tty_writestring("nd");
-			case 3:
-			    tty_writestring("rd");
-			default:
-			    tty_writestring("th");
-			}
+
 
 		} else { 
 			//options with capitals
