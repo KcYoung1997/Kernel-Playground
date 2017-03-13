@@ -19,7 +19,7 @@ static inline void io_wait(void)
 }
 
 void pic_init(void) {
-	tty_writestring("PIC initialization\n");
+	MODULE_INFO tty_writestring("init start\n");
 	// Send both PICs the init (cascade) command http://wiki.osdev.org/PIC#Initialisation
 	outportb(PIC_MASTER_CMD, 0x10 + 0x01);
 	outportb(PIC_SLAVE_CMD,  0x10 + 0x01); io_wait();
@@ -37,6 +37,6 @@ void pic_init(void) {
 	// Reset masks, enables all PIT lines
 	outportb(PIC_MASTER_DATA, 0);
 	outportb(PIC_SLAVE_DATA, 0);
-	tty_writestring("PIC init_done\n");
+	MODULE_INFO tty_writestring("init finished\n");
 
 }

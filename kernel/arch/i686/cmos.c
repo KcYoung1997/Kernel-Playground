@@ -83,22 +83,30 @@ uint8_t check_register_b(void) {
 }
 
 void cmos_init(void) {
-	tty_writestring("[CMOS] init start\n");
+	MODULE_INFO tty_writestring("init start\n");
 	uint8_t flags = check_register_b();
 	int origAM = AMPMmode;
 	int origBCD = BCDmode;
-	tty_writef("[CMOS] 12 hour mode %s\n", AMPMmode?"enabled, will attempt to disable":"disabled");
-	tty_writef("[CMOS] BCD mode %s\n", BCDmode?"enabled, will attempt to disable":"disabled");
+	MODULE_INFO tty_writef("12 hour mode %s\n", AMPMmode?"enabled, will attempt to disable":"disabled");
+	MODULE_INFO tty_writef("BCD mode %s\n", BCDmode?"enabled, will attempt to disable":"disabled");
 	//Select register B
 	outportb(CMOS_ADDRESS_REG, RTC_REG_STATUS_B);
 	//Write back flags, with IRQ enabled
 	outportb(CMOS_DATA_REG, (flags | 0x40)&(~(0x6)));
 	check_register_b();
 	if(origAM) {
-		tty_writef("[CMOS] 12 hour mode %s\n", AMPMmode?"disabled succesfully":"still enabled");
+		if(AMPMmode) {
+			MODULE_WARNING tty_writestring("12 hour mode still enabled\n");
+		} else {
+			MODULE_INFO tty_writestring("12 hour mode disabled\n");
+		}
 	}
 	if(origBCD) {
-		tty_writef("[CMOS] BCD mode %s\n", BCDmode?"disabled succesfully":"still enabled");
+		if(BCDmode) {
+			MODULE_WARNING tty_writestring("BCD mode still enabled\n");
+		} else {
+			MODULE_INFO tty_writestring("BCD mode disabled\n");
+		}
 	}
 
 

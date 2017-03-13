@@ -75,7 +75,7 @@ void set_idt_entry(int num, unsigned long base, unsigned short selector, unsigne
 
 
 void irq_init(void) {
-	tty_writestring("IRQ initialization\n");
+	MODULE_INFO tty_writestring("init start\n");
 
 	struct idt_p {
 		unsigned short limit;
@@ -101,9 +101,7 @@ void irq_init(void) {
 	}
 	
 	lidt_core((unsigned long)&idtp);
-	
-	tty_writestring("IRQ init_done\n");
 
-
+	MODULE_INFO tty_writestring("init complete\n");
 }
 

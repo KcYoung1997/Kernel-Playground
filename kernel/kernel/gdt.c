@@ -32,7 +32,7 @@ void set_gdt(int num, unsigned int base, unsigned int limit, unsigned char acces
 
 
 void gdt_init(void) {
-	tty_writestring("[GDT] init start\n");
+	MODULE_INFO tty_writestring("init start\n");
 
 	struct gdt_p {
 		unsigned short limit;
@@ -54,8 +54,8 @@ void gdt_init(void) {
 	set_gdt(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // Usermode code segment
 	set_gdt(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // Usermode data segment
 
-	tty_writestring("[GDT] calling lgdt\n");
+	MODULE_INFO tty_writestring("calling lgdt\n");
 	lgdt_core((unsigned long)&gdtp);
 
-	tty_writestring("[GDT] init finished\n");
+	MODULE_INFO tty_writestring("init finished\n");
 }
