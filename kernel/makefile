@@ -95,7 +95,7 @@ install-kernel: $(OUTBIN)
 $(OUTBIN): $(INTERNAL_OBJS) $(ARCHDIR)/linker.ld
 	mkdir -p $(OUTDIR)
 	$(CC) $(CFLAGS) -T $(ARCHDIR)/linker.ld -o $@ -ffreestanding -nostdlib $(OBJ_LINK_LIST)
-	grub-file --is-x86-multiboot $@
+	grub-file --is-x86-multiboot $@ 2>/dev/null; true
 
 .s.o:
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
