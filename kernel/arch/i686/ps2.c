@@ -4,11 +4,6 @@
 
 #include <stdint.h>
 
-
-
-#define MODULE "PS2"
-
-
 #define PS2_DATAPORT 0x60
 #define PS2_REGISTERPORT 0x64
 
@@ -32,6 +27,7 @@
 #define ENABLESCANNING 0xF4
 #define DISABLESCANNING 0xF5
 #define PS2_IDENTIFY 0xF2
+#define PS2_RESET 0xFF
 
 #define PORT_DISABLED		0
 #define PORT_UNKNOWN		1
@@ -84,8 +80,8 @@ void ps2_init(){
 	else tty_writestring(" Port2 disabled\n");
 
 	//TODO: Set interrupts off for both devices
-	//config &= ~(1 << 0);
-	//config &= ~(1 << 1);
+	config &= ~(1 << 0);
+	config &= ~(1 << 1);
 	// Set translation off
 	config &= ~(1 << 6);
 
@@ -133,7 +129,7 @@ void ps2_init(){
 	if(safe_read(PS2_DATAPORT) == PORTTESTPASS) port1Mode = PORT_UNKNOWN;
 	else { MODULE_WARNING tty_writestring("Port1 failed test\n"); }
 	if(port2Mode){
-		safe_write(PS2_REGISTERPORT, TESTPORT1);
+		safe_write(PS2_REGISTERPORT, TESTPORT2);
 		if(safe_read(PS2_DATAPORT) != PORTTESTPASS){
 			port2Mode = PORT_DISABLED;
 			MODULE_WARNING tty_writestring("Port2 failed test\n");
@@ -150,13 +146,21 @@ void ps2_init(){
 	safe_write(PS2_REGISTERPORT, ENABLEPORT1);
 	safe_write(PS2_REGISTERPORT, ENABLEPORT2);
 
+	safe_write(PS2_DATAPORT, PS2_RESET);
+
 	MODULE_INFO tty_writestring("Disabling scanning on port 1\n");
-	bool success = false;
-	do{
+	int success = 0;
+	int retries = 10;
+	while(success != 0xFA) {
 		cleanInput();
-		safe_write(PS2_DATAPORT, DISABLESCANNING);
-		if(safe_read(PS2_DATAPORT) == 0xFA) success = true;
-	}while(!success);
+		safe_write(PS2_DATAPORT, DISABLESCANNING);		
+		success = safe_read(PS2_DATAPORT);
+		retries--;
+		if(!retries){
+			MODULE_WARNING tty_writestring("Unable to disable scanning\n");
+			break;
+		}
+	}
 	cleanInput();
 
 	MODULE_INFO tty_writestring("Asking port 1 for device identification\n");
