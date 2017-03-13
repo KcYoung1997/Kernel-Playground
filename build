@@ -1,5 +1,8 @@
 #!/bin/sh
-set -e
+err_report() {
+    echo "Build.sh Failed"
+}
+trap 'err_report' ERR
 . ./config
 for PROJECT in $PROJECTS; do
   (cd $PROJECT && DESTDIR="$SYSROOT" make install-headers)

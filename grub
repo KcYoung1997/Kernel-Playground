@@ -1,5 +1,8 @@
 #!/bin/sh
-set -e
+err_report() {
+    echo "Grub.sh Failed"
+}
+trap 'err_report' ERR
 . ./build
 export OUTISO="$(pwd)/$OSNAME.iso"
 (cd kernel && DESTDIR="$SYSROOT" make grub)
