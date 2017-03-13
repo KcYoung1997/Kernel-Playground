@@ -46,12 +46,11 @@ void exitSplash(void) {
 	tty_clear();
 	for(;;){
 		char c = keyboard_read();
-		if(c) tty_writechar(c);
+		if(c) { if(c=='1') return; else tty_writechar(c); };
 	}
 
 }
 
-int ticks = 0;
 const char * days[7] = {  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const char * months[12] = {  "January","February","March","April","May","June","July","August","September","October","November","December" };
 void printTime(){
@@ -65,9 +64,7 @@ void printTime(){
 	tty_writef("%02d:%02d:%02d", current.hour, current.minute, current.second);
 	tty_cursorposition(28,2);
 	tty_writef("%s the %t of %s", days[weekday], current.day, months[current.month-1]);
-	ticks++;
 	tty_cursorposition(35,3);
-	tty_writef("Ticks: %d", ticks);
 }
 
 void splash(void) {
@@ -105,6 +102,14 @@ void splash(void) {
 	}
 }
 
+static int ticks;
+void sleep_countdown(void) { ticks--; }
+void sleep(int _ticks) {
+	ticks = _ticks;
+	set_irq_func(8, sleep_countdown);
+	while(ticks>0) tty_writef("");
+}
+
 void kernel_main(void) {
 	tty_init();
 	ps2_init();
@@ -114,6 +119,11 @@ void kernel_main(void) {
 	pic_init();
 	// Enable interrupts
 	asm volatile("sti");
-	//splash();
+	tty_writestring("Entering splash screen in: ");
+	for(int i = 5; i > 0; i--) {
+		tty_writef("%d... ", i);
+		sleep(4);
+	}
+	splash();
 	for(;;) {asm volatile("hlt");}
 }
