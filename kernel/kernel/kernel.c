@@ -26,19 +26,6 @@ void srand( unsigned int seed )
     next = seed;
 }
 
-inline void print_hex(uint8_t in){
-	uint8_t char1 = in >> 4;
-	uint8_t char2 = in % 16;
-	if(char1>9)
-		tty_writechar(char1-10 + 'A');
-	else
-		tty_writechar(char1 % 10 + '0');
-	if(char2>9)
-		tty_writechar(char2-10 + 'A');
-	else
-		tty_writechar(char2 % 10 + '0');
-}
-
 inline uint8_t PIT_getclock(){
 	return inportb(0x40);
 }
