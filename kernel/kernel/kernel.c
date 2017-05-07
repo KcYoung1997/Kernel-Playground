@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <kernel/tty.h>
 #include <kernel/ps2.h>
@@ -10,8 +11,11 @@
 #include <kernel/gdt.h>
 #include <kernel/pic.h>
 
+#include <cpuid.h>
 
-#include <string.h>
+#define CPUID_NAME_STRING_1 0x80000002
+#define CPUID_NAME_STRING_2 0x80000003
+#define CPUID_NAME_STRING_3 0x80000004
 
 static unsigned long int next = 1;
 
@@ -104,6 +108,21 @@ void kernel_main(void) {
 	irq_init();
 	gdt_init();
 	pic_init();
+
+	uint32_t ret[12];
+	for(int i = 0; i < 3; i++){
+		uint32_t eax, ebx, ecx, edx;
+
+  		__cpuid (0x80000002+i, eax, ebx, ecx, edx);
+		*(ret+(i*4)) = eax;
+		*(ret+(i*4)+1) = ebx;
+		*(ret+(i*4)+2) = ecx;
+		*(ret+(i*4)+3) = edx;
+	}
+	tty_writestring((char*)ret);
+	tty_writechar(*"\n");
+
+
 	// Enable interrupts
 	asm volatile("sti");
 	tty_writestring("Entering splash screen in: ");
