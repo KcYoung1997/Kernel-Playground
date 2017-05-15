@@ -1,6 +1,8 @@
-#TODO:
+TODO:
+* Make boot log scrollable
+* Add ability to swap between boot log and splash screen
+* Usermode stuff http://wiki.osdev.org/Getting_to_Ring_3
 * Handling Spurious IRQs http://wiki.osdev.org/PIC#Handling_Spurious_IRQs
-* GDT
 * Getting CPU information
 * Complete Key Mapping
 * Interactive Shell
