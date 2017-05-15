@@ -34,6 +34,7 @@ kernel/kernel.o \
 kernel/irq.o \
 kernel/gdt.o \
 kernel/pic.o \
+kernel/tss.o \
 lib/memset.o \
 
 CRTI_OBJ=$(ARCHDIR)/crti.o

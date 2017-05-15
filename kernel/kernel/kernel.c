@@ -10,6 +10,7 @@
 #include <kernel/irq.h>
 #include <kernel/gdt.h>
 #include <kernel/pic.h>
+#include <kernel/tss.h>
 
 #include <cpuid.h>
 
@@ -108,6 +109,7 @@ void kernel_main(void) {
 	irq_init();
 	gdt_init();
 	pic_init();
+	tss_init();
 
 	uint32_t ret[12];
 	for(int i = 0; i < 3; i++){
