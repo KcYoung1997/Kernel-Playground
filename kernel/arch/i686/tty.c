@@ -337,11 +337,15 @@ void tty_writeordinal(uint32_t num) {
 	{
 	case 1:
 	    tty_writestring("st");
+		break;
 	case 2:
 	    tty_writestring("nd");
+		break;
 	case 3:
 	    tty_writestring("rd");
+		break;
 	default:
 	    tty_writestring("th");
+		break;
 	}
 }
